@@ -1,3 +1,4 @@
+
 # Scripts Collection
 
 A collection of useful automation scripts for system maintenance and productivity.
@@ -23,7 +24,10 @@ A comprehensive Windows 11 system cleanup script that safely removes temporary f
 - 🔍 Removes VS Code cache and temporary files
 - 🌐 Cleans browser caches (Microsoft Edge)
 - 🔧 Development tools cleanup (npm, Playwright, Postman, Docker)
-- 📱 Application data cleanup (Thunderbird, Mozilla, Zoom, Ledger Live)
+- 🗑️ Google Update cache cleanup
+- 🗃️ Optional .NET NuGet package cache cleanup (commented out by default)
+- 🐳 Docker system/image/volume cleanup (if Docker is installed)
+- 📱 Application data cleanup (Thunderbird, Zoom, Ledger Live, etc.)
 - 🗑️ System temporary files and Windows Update cache
 - ♻️ Recycle Bin and thumbnail cache cleanup
 - 📊 Registry cleanup for invalid startup entries
@@ -47,6 +51,19 @@ A comprehensive Windows 11 system cleanup script that safely removes temporary f
 - Comprehensive error reporting
 - Skips non-existent files/folders
 - Color-coded output for easy monitoring
+
+## 🗂️ Large Files Handling
+
+The script reports the top 20 largest files (>100MB) on your C: drive. Some files can be safely deleted, while others are system or application files and should be kept.
+
+**Automatically handled by the script:**
+- Google Update cache (`crx_cache`)
+- Docker images/volumes/containers (if Docker is installed)
+- (Optional) NuGet package cache (uncomment in script if you want to clear)
+
+**Manual cleanup recommendations:**
+- Review large files reported by the script. Only delete files you recognize and do not need.
+- Do **not** delete system files like `winre.wim`, `system.vhd`, or application binaries unless you are certain they are not needed.
 
 ## 🛡️ Safety Notes
 

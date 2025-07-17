@@ -105,9 +105,17 @@ Remove-Safely "$env:LOCALAPPDATA\Gizmo.Client.UI.Host.WPF.WebView2"
 Remove-Safely "$env:LOCALAPPDATA\Gizmo.Web.Manager.UI.Host.WPF.WebView2"
 Remove-Safely "$env:LOCALAPPDATA\Docker Desktop Installer"
 
+Write-Host "==> Google Update cache cleanup" -ForegroundColor Cyan
+Remove-WildcardSafely "${env:ProgramFiles(x86)}\Google\GoogleUpdater\crx_cache\*"
+
+Write-Host "==> .NET NuGet package cache cleanup (optional - may affect build times)" -ForegroundColor Cyan
+# Uncomment the next line if you want to clear NuGet global packages cache
+# Remove-WildcardSafely "$env:USERPROFILE\.nuget\packages\*"
+Write-Host "Note: NuGet cache cleanup is commented out to preserve packages. Uncomment if needed." -ForegroundColor Yellow
+
 Write-Host "==> Misc user app data cleanup" -ForegroundColor Cyan
 Remove-Safely "$env:APPDATA\Thunderbird"
-Remove-Safely "$env:APPDATA\Mozilla"
+#Remove-Safely "$env:APPDATA\Mozilla"
 Remove-Safely "$env:APPDATA\Zoom"
 Remove-Safely "$env:LOCALAPPDATA\Ledger Live"
 Remove-Safely "$env:LOCALAPPDATA\Garmin"
@@ -153,7 +161,7 @@ Remove-WildcardSafely "$env:ProgramData\Microsoft\Windows\WER\ReportQueue\*"
 Remove-WildcardSafely "$env:ProgramData\Microsoft\Windows\WER\ReportArchive\*"
 
 Write-Host "==> Windows Thumbnail cache cleanup" -ForegroundColor Cyan
-Remove-WildcardSafely "$env:LOCALAPPDATA\Microsoft\Windows\Explorer\thumbcache_*.db"
+#Remove-WildcardSafely "$env:LOCALAPPDATA\Microsoft\Windows\Explorer\thumbcache_*.db"
 
 Write-Host "==> Recent Files cleanup" -ForegroundColor Cyan
 Remove-WildcardSafely "$env:APPDATA\Microsoft\Windows\Recent\*"
@@ -191,6 +199,21 @@ Remove-WildcardSafely "$env:SystemRoot\ServiceProfiles\LocalService\AppData\Loca
 
 Write-Host "==> Windows Store cache cleanup" -ForegroundColor Cyan
 Remove-Safely "$env:LOCALAPPDATA\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalCache"
+
+Write-Host "==> Docker cleanup (if Docker is installed)" -ForegroundColor Cyan
+try {
+    if (Get-Command docker -ErrorAction SilentlyContinue) {
+        Write-Host "Found Docker installation, running cleanup..." -ForegroundColor Yellow
+        & docker system prune -f 2>$null
+        & docker image prune -a -f 2>$null
+        & docker volume prune -f 2>$null
+        Write-Host "Docker cleanup completed" -ForegroundColor Green
+    } else {
+        Write-Host "Docker not found or not in PATH" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "Docker cleanup failed: $_" -ForegroundColor Red
+}
 
 Write-Host "==> DirectX Shader cache cleanup" -ForegroundColor Cyan
 Remove-WildcardSafely "$env:LOCALAPPDATA\D3DSCache\*"
