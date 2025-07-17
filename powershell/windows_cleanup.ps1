@@ -110,7 +110,7 @@ Remove-WildcardSafely "${env:ProgramFiles(x86)}\Google\GoogleUpdater\crx_cache\*
 
 Write-Host "==> .NET NuGet package cache cleanup (optional - may affect build times)" -ForegroundColor Cyan
 # Uncomment the next line if you want to clear NuGet global packages cache
-# Remove-WildcardSafely "$env:USERPROFILE\.nuget\packages\*"
+#Remove-WildcardSafely "$env:USERPROFILE\.nuget\packages\*"
 Write-Host "Note: NuGet cache cleanup is commented out to preserve packages. Uncomment if needed." -ForegroundColor Yellow
 
 Write-Host "==> Misc user app data cleanup" -ForegroundColor Cyan
@@ -129,9 +129,13 @@ Remove-Safely "C:\ProgramData\Microsoft\VisualStudio\Packages"
 Write-Host "==> CrashDumps cleanup" -ForegroundColor Cyan
 Remove-Safely "$env:LOCALAPPDATA\CrashDumps"
 
+Write-Host "==> Windows LiveKernelReports cleanup (crash dumps)" -ForegroundColor Cyan
+Remove-WildcardSafely "$env:SystemRoot\LiveKernelReports\*.dmp"
+
 Write-Host "==> TEMP folders cleanup" -ForegroundColor Cyan
 Remove-WildcardSafely "$env:TEMP\*"
 Remove-WildcardSafely "$env:LOCALAPPDATA\Temp\*"
+Remove-WildcardSafely "$env:SystemRoot\Temp\*"
 
 Write-Host "==> Windows Update cache cleanup" -ForegroundColor Cyan
 Remove-WildcardSafely "$env:WINDIR\SoftwareDistribution\Download\*"
