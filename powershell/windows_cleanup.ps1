@@ -124,7 +124,7 @@ Write-Host "==> Lenovo System Update cleanup" -ForegroundColor Cyan
 Remove-Safely "C:\ProgramData\Lenovo\SystemUpdate\sessionSE\Repository"
 
 Write-Host "==> Visual Studio offline package cleanup" -ForegroundColor Cyan
-Remove-Safely "C:\ProgramData\Microsoft\VisualStudio\Packages"
+#Remove-Safely "C:\ProgramData\Microsoft\VisualStudio\Packages"
 
 Write-Host "==> CrashDumps cleanup" -ForegroundColor Cyan
 Remove-Safely "$env:LOCALAPPDATA\CrashDumps"
