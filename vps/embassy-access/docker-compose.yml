@@ -1,0 +1,56 @@
+services:
+  browser-webapi:
+    image: ponkorn/browser-webapi:latest
+    container_name: embassy-access-browser-webapi
+    expose:
+      - 3001
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=3001
+      - USE_UI=false
+      - BINARY_DATA_DIR=/usr/bin/chromium-browser
+      - USER_DATA_DIR=/tmp/chrome_temp
+      - IDLE_TIMEOUT_DAYS=365
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    networks:
+      - embassy-access-network
+
+  postgres:
+    image: postgres:18
+    container_name: embassy-access-postgres
+    expose:
+      - 5432
+    environment:
+      POSTGRES_DB: eadb
+      POSTGRES_USER: eauser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eapassword}
+    volumes:
+      - postgres-volume:/var/lib/postgresql/18/docker
+    restart: unless-stopped
+    networks:
+      - embassy-access-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: embassy-access-pgadmin
+    ports:
+      - 3002:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - embassy-access-network
+    volumes:
+      - pgadmin-volume:/var/lib/pgadmin
+
+networks:
+  embassy-access-network:
+    driver: bridge
+
+volumes:
+  postgres-volume:
+  pgadmin-volume:
