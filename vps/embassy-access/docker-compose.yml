@@ -2,8 +2,8 @@ services:
   browser-webapi:
     image: ponkorn/browser-webapi:latest
     container_name: embassy-access-browser-webapi
-    expose:
-      - 3001
+    ports:
+      - 3001:3001
     environment:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=3001
@@ -19,8 +19,8 @@ services:
   postgres:
     build: ./postgres
     container_name: embassy-access-postgres
-    expose:
-      - 5432
+    ports:
+      - 5432:5432
     environment:
       POSTGRES_DB: eadb
       POSTGRES_USER: eauser
