@@ -17,7 +17,7 @@ services:
       - embassy-access-network
 
   postgres:
-    image: postgres:18
+    build: ./postgres
     container_name: embassy-access-postgres
     expose:
       - 5432
@@ -25,8 +25,11 @@ services:
       POSTGRES_DB: eadb
       POSTGRES_USER: eauser
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eapassword}
+      BACKUP_INTERVAL_DAYS: ${BACKUP_INTERVAL_DAYS:-7}
+      PGDATA: /var/lib/postgresql/data
     volumes:
-      - postgres-volume:/var/lib/postgresql/18/docker
+      - postgres-volume:/var/lib/postgresql
+      - ./backups:/backups
     restart: unless-stopped
     networks:
       - embassy-access-network

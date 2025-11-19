@@ -1,18 +1,83 @@
 
-# Scripts Collection
+# Infrastructure Configuration
 
-A collection of useful automation scripts for system maintenance and productivity.
+A collection of infrastructure configurations, Docker Compose setups, and automation scripts for system maintenance and productivity.
 
 ## 📁 Directory Structure
 
 ```
-scripts/
 ├── README.md
-└── powershell/
-    └── windows_cleanup.ps1
+├── scripts/
+│   └── powershell/
+│       └── windows_cleanup.ps1
+└── vps/
+    └── embassy-access/
+        ├── docker-compose.yml
+        ├── backups/
+        └── postgres/
+            ├── Dockerfile
+            ├── backup.sh
+            └── entrypoint.sh
 ```
 
-## 🚀 Scripts Overview
+## 🚀 Components Overview
+
+### VPS Services
+
+#### Embassy Access Stack (`vps/embassy-access/`)
+
+A Docker Compose stack for embassy access management with automated PostgreSQL backups.
+
+**Services:**
+- **PostgreSQL 18**: Custom build with automated backup functionality
+  - Cron-based scheduled backups (daily at 2 AM)
+  - Configurable backup interval (default: 7 days)
+  - Backups stored on host filesystem (`./backups`)
+  - Custom data directory configuration
+- **pgAdmin 4**: Web-based PostgreSQL administration interface
+  - Accessible on port 3002
+  - Persistent configuration storage
+- **Browser WebAPI**: Headless browser service for automation
+
+**PostgreSQL Backup Features:**
+- ✅ Automated pg_dump backups every X days (configurable)
+- 📁 Backups saved to host filesystem (accessible outside Docker)
+- 🕐 Scheduled via cron (daily check at 2 AM)
+- 📊 Interval tracking to avoid unnecessary backups
+- 🔄 Timestamped backup files (`backup_YYYYMMDD_HHMMSS.sql`)
+
+**Environment Variables:**
+```bash
+# PostgreSQL
+POSTGRES_PASSWORD=<your-password>
+BACKUP_INTERVAL_DAYS=7  # Days between backups (default: 7)
+
+# pgAdmin
+PGADMIN_EMAIL=<your-email>
+PGADMIN_PASSWORD=<your-password>
+```
+
+**Usage:**
+```bash
+# Start all services
+cd vps/embassy-access
+docker compose up -d
+
+# View logs
+docker compose logs -f postgres
+
+# Manual backup
+docker exec embassy-access-postgres /usr/local/bin/backup.sh
+
+# Access pgAdmin
+# Open http://localhost:3002
+```
+
+**Backup Management:**
+- Backups are stored in `vps/embassy-access/backups/`
+- To restore a backup: `docker exec -i embassy-access-postgres psql -U eauser -d eadb < backups/backup_YYYYMMDD_HHMMSS.sql`
+- Change backup interval: Set `BACKUP_INTERVAL_DAYS` in your `.env` file or docker-compose
+- Modify schedule: Edit cron expression in `postgres/Dockerfile`
 
 ### PowerShell Scripts
 
