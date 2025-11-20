@@ -20,7 +20,7 @@ services:
     build: ./postgres
     container_name: embassy-access-postgres
     ports:
-      - 5432:5432
+      - 3002:5432
     environment:
       POSTGRES_DB: eadb
       POSTGRES_USER: eauser
@@ -38,7 +38,7 @@ services:
     image: dpage/pgadmin4:latest
     container_name: embassy-access-pgadmin
     ports:
-      - 3002:80
+      - 3003:80
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
