@@ -2,8 +2,6 @@ services:
   browser-webapi:
     image: ponkorn/browser-webapi:latest
     container_name: embassy-access-browser-webapi
-    ports:
-      - 3001:3001
     environment:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=3001
@@ -19,8 +17,6 @@ services:
   postgres:
     build: ./postgres
     container_name: embassy-access-postgres
-    ports:
-      - 5432:5432
     environment:
       POSTGRES_DB: eadb
       POSTGRES_USER: eauser
@@ -37,8 +33,6 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: embassy-access-pgadmin
-    ports:
-      - 3002:80
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
@@ -50,6 +44,20 @@ services:
     volumes:
       - pgadmin-volume:/var/lib/pgadmin
 
+  caddy:
+    image: caddy:latest
+    container_name: embassy-access-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - embassy-access-network
+
 networks:
   embassy-access-network:
     driver: bridge
@@ -57,3 +65,6 @@ networks:
 volumes:
   postgres-volume:
   pgadmin-volume:
+  pgadmin-data:
+  caddy-data:
+  caddy-config:
