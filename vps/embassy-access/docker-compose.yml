@@ -60,6 +60,7 @@ services:
 
 networks:
   embassy-access-network:
+    name: embassy-access-network
     driver: bridge
 
 volumes:
