@@ -1,3 +1,4 @@
+#docker network create --driver bridge embassy-access-network
 services:
   browser-webapi:
     image: ponkorn/browser-webapi:latest
@@ -13,6 +14,8 @@ services:
     restart: unless-stopped
     networks:
       - embassy-access-network
+    ports:
+      - "3001:3001"
 
   postgres:
     build: ./postgres
@@ -29,6 +32,8 @@ services:
     restart: unless-stopped
     networks:
       - embassy-access-network
+    ports:
+      - "3002:5432"
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -36,13 +41,13 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
-    ports:
-      - "88:80"
     depends_on:
       - postgres
     restart: unless-stopped
     networks:
       - embassy-access-network
+    ports:
+      - "88:80"
     volumes:
       - pgadmin-volume:/var/lib/pgadmin
 
