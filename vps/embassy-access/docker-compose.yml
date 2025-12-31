@@ -36,6 +36,8 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "88:80"
     depends_on:
       - postgres
     restart: unless-stopped
@@ -44,19 +46,19 @@ services:
     volumes:
       - pgadmin-volume:/var/lib/pgadmin
 
-  caddy:
-    image: caddy:latest
-    container_name: embassy-access-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    networks:
-      - embassy-access-network
+  # caddy:
+  #   image: caddy:latest
+  #   container_name: embassy-access-caddy
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy-data:/data
+  #     - caddy-config:/config
+  #   networks:
+  #     - embassy-access-network
 
 networks:
   embassy-access-network:
@@ -67,5 +69,5 @@ volumes:
   postgres-volume:
   pgadmin-volume:
   pgadmin-data:
-  caddy-data:
-  caddy-config:
+  # caddy-data:
+  # caddy-config:
