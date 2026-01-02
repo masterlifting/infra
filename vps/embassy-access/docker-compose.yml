@@ -1,3 +1,5 @@
+#docker network create --driver bridge embassy-access-network
+
 services:
   browser-webapi:
     image: ponkorn/browser-webapi:latest
