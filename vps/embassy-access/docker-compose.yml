@@ -2,7 +2,7 @@
 
 services:
   browser-webapi:
-    image: browser-webapi:dev
+    image: ponkorn/browser-webapi:latest
     container_name: embassy-access-browser-webapi
     environment:
       - SERVER_HOST=0.0.0.0
@@ -10,8 +10,6 @@ services:
       - USER_DATA_DIR=/app/chrome-profile
     networks:
       - embassy-access-network
-    ports:
-      - "3001:3001"
     volumes:
       - chrome-data:/app/chrome-profile
     restart: unless-stopped
@@ -57,8 +55,6 @@ services:
       - "checkpoint_completion_target=0.9"
     networks:
       - embassy-access-network
-    ports:
-      - "3002:5432"
     volumes:
       - postgres-volume:/var/lib/postgresql
       - ./backups:/backups
@@ -72,13 +68,25 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
     networks:
       - embassy-access-network
-    ports:
-      - "88:80"
     volumes:
       - pgadmin-volume:/var/lib/pgadmin
     depends_on:
       - postgres
     restart: unless-stopped
+
+  caddy:
+    image: caddy:latest
+    container_name: embassy-access-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - embassy-access-network
 
 networks:
   embassy-access-network:
@@ -90,3 +98,5 @@ volumes:
   postgres-volume:
   pgadmin-volume:
   pgadmin-data:
+  caddy-data:
+  caddy-config:
