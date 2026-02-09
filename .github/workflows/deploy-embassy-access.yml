@@ -1,0 +1,97 @@
+name: Deploy embassy-access infrastructure
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: [embassy-access]
+
+concurrency:
+  group: deploy-embassy-access
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Only deploy on main if embassy-access files changed.
+      # Tag deploys always run (explicit release signal).
+      - name: Detect changes
+        id: changes
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            embassy_access:
+              - 'vps/embassy-access/**'
+
+      - name: Compute target dir
+        id: vars
+        if: ${{ github.ref == 'refs/tags/embassy-access' || steps.changes.outputs.embassy_access == 'true' }}
+        shell: bash
+        run: |
+          set -eu
+          DEPLOY_DIR='${{ secrets.DEPLOY_DIR }}'
+          if [ -z "$DEPLOY_DIR" ]; then
+            echo "DEPLOY_DIR secret is required and must be set to /usr/src." >&2
+            exit 1
+          fi
+
+          # This repo is expected to live at /usr/src/infra on the VPS.
+          if [ "$DEPLOY_DIR" != "/usr/src" ]; then
+            echo "DEPLOY_DIR must be exactly /usr/src (got: $DEPLOY_DIR)." >&2
+            exit 1
+          fi
+
+          TARGET_DIR="$DEPLOY_DIR/infra"
+
+          echo "target_dir=$TARGET_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Sync embassy-access folder to VPS
+        if: ${{ github.ref == 'refs/tags/embassy-access' || steps.changes.outputs.embassy_access == 'true' }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH }}
+          passphrase: ${{ secrets.VPS_PASSPHRASE }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: "vps/embassy-access/**"
+          target: "${{ steps.vars.outputs.target_dir }}/vps/embassy-access"
+
+      - name: Deploy on VPS
+        if: ${{ github.ref == 'refs/tags/embassy-access' || steps.changes.outputs.embassy_access == 'true' }}
+        uses: appleboy/ssh-action@v0.1.6
+        env:
+          TARGET_DIR: ${{ steps.vars.outputs.target_dir }}
+          COMPOSE_PROJECT: embassy-access
+          COMPOSE_DIR: vps/embassy-access
+          DOCKER_NETWORK: embassy-access-network
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH }}
+          passphrase: ${{ secrets.VPS_PASSPHRASE }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          envs: TARGET_DIR,COMPOSE_PROJECT,COMPOSE_DIR,DOCKER_NETWORK
+          script: |
+            set -eu
+
+            mkdir -p "$TARGET_DIR"
+            cd "$TARGET_DIR/$COMPOSE_DIR"
+
+            docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1 || docker network create --driver bridge "$DOCKER_NETWORK"
+
+            docker compose --project-name "$COMPOSE_PROJECT" pull --ignore-pull-failures || true
+            docker compose --project-name "$COMPOSE_PROJECT" up -d --build
+
+            docker image prune -f || true
+            docker builder prune -f || true
+            docker compose --project-name "$COMPOSE_PROJECT" ps
