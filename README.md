@@ -1,150 +1,165 @@
+# Infrastructure (infra)
 
-# Infrastructure Configuration
+Infrastructure configuration repo: VPS Docker Compose stacks and a small set of maintenance scripts.
 
-A collection of infrastructure configurations, Docker Compose setups, and automation scripts for system maintenance and productivity.
-
-## 📁 Directory Structure
+## Layout
 
 ```
-├── README.md
-├── scripts/
-│   └── powershell/
-│       └── windows_cleanup.ps1
-└── vps/
-    └── embassy-access/
-        ├── docker-compose.yml
-        ├── backups/
-        └── postgres/
-            ├── Dockerfile
-            ├── backup.sh
-            └── entrypoint.sh
+.
+|-- README.md
+|-- scripts/
+|   `-- powershell/
+|       `-- windows_cleanup.ps1
+`-- vps/
+    `-- embassy-access/
+        |-- Caddyfile
+        |-- docker-compose.yml
+        |-- backups/                # host-mounted SQL dumps (gitignored)
+        `-- postgres/
+            |-- Dockerfile
+            |-- backup.sh
+            `-- entrypoint.sh
 ```
 
-## 🚀 Components Overview
+## embassy-access stack (`vps/embassy-access/`)
 
-### VPS Services
+This stack is intended to run on a VPS and is managed with Docker Compose.
 
-#### Embassy Access Stack (`vps/embassy-access/`)
+### Services
 
-A Docker Compose stack for embassy access management with automated PostgreSQL backups.
+- `browser-webapi`: `ponkorn/browser-webapi:latest` (internal service; no host ports published by default)
+- `postgres`: Postgres 18 (custom image with cron-driven backups)
+- `pgadmin`: `dpage/pgadmin4:latest` (served via Caddy; no direct host ports by default)
+- `caddy`: reverse proxy + TLS termination (binds host ports `80` and `443`)
 
-**Services:**
-- **PostgreSQL 18**: Custom build with automated backup functionality
-  - Cron-based scheduled backups (daily at 2 AM)
-  - Configurable backup interval (default: 7 days)
-  - Backups stored on host filesystem (`./backups`)
-  - Custom data directory configuration
-- **pgAdmin 4**: Web-based PostgreSQL administration interface
-  - Accessible on port 3002
-  - Persistent configuration storage
-- **Browser WebAPI**: Headless browser service for automation
+### One-time setup (external network)
 
-**PostgreSQL Backup Features:**
-- ✅ Automated pg_dump backups every X days (configurable)
-- 📁 Backups saved to host filesystem (accessible outside Docker)
-- 🕐 Scheduled via cron (daily check at 2 AM)
-- 📊 Interval tracking to avoid unnecessary backups
-- 🔄 Timestamped backup files (`backup_YYYYMMDD_HHMMSS.sql`)
+The Compose file uses an external network named `embassy-access-network`. Create it once on the host:
 
-**Environment Variables:**
 ```bash
-# PostgreSQL
-POSTGRES_PASSWORD=<your-password>
-BACKUP_INTERVAL_DAYS=7  # Days between backups (default: 7)
-
-# pgAdmin
-PGADMIN_EMAIL=<your-email>
-PGADMIN_PASSWORD=<your-password>
+docker network create --driver bridge embassy-access-network
 ```
 
-**Usage:**
+### Configuration (`.env`)
+
+Create a `.env` file (gitignored) in `vps/embassy-access/` with at least:
+
 ```bash
-# Start all services
+POSTGRES_PASSWORD=change-me
+PGADMIN_EMAIL=admin@example.com
+PGADMIN_PASSWORD=change-me
+BACKUP_INTERVAL_DAYS=7
+```
+
+### Run locally (for validation)
+
+```bash
 cd vps/embassy-access
-docker compose up -d
+docker compose up -d --build
+docker compose ps
+```
 
-# View logs
+Logs:
+
+```bash
 docker compose logs -f postgres
+```
 
-# Manual backup
+### Access (Caddy)
+
+`caddy` serves routes defined in `vps/embassy-access/Caddyfile`.
+
+Default config proxies:
+- `pgadmin.masterlifting.fit` -> `pgadmin:80`
+
+Notes:
+- If the host already uses ports `80/443`, you must change the Compose ports or disable the `caddy` service.
+- For local testing, you may need to adjust `Caddyfile` (for example to `localhost` / `:80`) or add a hosts entry.
+
+### Backups
+
+Backups are written by `vps/embassy-access/postgres/backup.sh` to `/backups` inside the container, which is mounted to
+`vps/embassy-access/backups/` on the host (gitignored).
+
+Automation:
+- A cron job runs daily at 02:00 inside the Postgres container.
+- The script only performs a dump if `BACKUP_INTERVAL_DAYS` have elapsed since the last backup (tracked in `last_backup.txt`).
+
+Manual backup:
+
+```bash
 docker exec embassy-access-postgres /usr/local/bin/backup.sh
-
-# Access pgAdmin
-# Open http://localhost:3002
 ```
 
-**Backup Management:**
-- Backups are stored in `vps/embassy-access/backups/`
-- To restore a backup: `docker exec -i embassy-access-postgres psql -U eauser -d eadb < backups/backup_YYYYMMDD_HHMMSS.sql`
-- Change backup interval: Set `BACKUP_INTERVAL_DAYS` in your `.env` file or docker-compose
-- Modify schedule: Edit cron expression in `postgres/Dockerfile`
+Restore a dump:
 
-### PowerShell Scripts
+```bash
+docker exec -i embassy-access-postgres psql -U eauser -d eadb < backups/backup_YYYYMMDD_HHMMSS.sql
+```
 
-#### `windows_cleanup.ps1`
-A comprehensive Windows 11 system cleanup script that safely removes temporary files, caches, and other system junk to free up disk space.
+## Deploy embassy-access infra to the VPS (this repo)
 
-**Features:**
-- ✅ Safe cleanup with error handling and path validation
-- 🔍 Removes VS Code cache and temporary files
-- 🌐 Cleans browser caches (Microsoft Edge)
-- 🔧 Development tools cleanup (npm, Playwright, Postman, Docker)
-- 🗑️ Google Update cache cleanup
-- 🗃️ Optional .NET NuGet package cache cleanup (commented out by default)
-- 🐳 Docker system/image/volume cleanup (if Docker is installed)
-- 📱 Application data cleanup (Thunderbird, Zoom, Ledger Live, etc.)
-- 🗑️ System temporary files and Windows Update cache
-- ♻️ Recycle Bin and thumbnail cache cleanup
-- 📊 Registry cleanup for invalid startup entries
-- 📈 Large file detection (files >100MB)
-- 🧹 Windows system maintenance (Prefetch, Error Reporting, etc.)
+Deployment is automated via GitHub Actions: `.github/workflows/deploy-embassy-access.yml`.
 
-**Requirements:**
-- Windows 11 (or Windows 10)
-- Administrator privileges
-- PowerShell execution policy bypass (handled automatically)
+### Prerequisites (VPS)
 
-**Usage:**
+- Docker + Docker Compose installed.
+- The SSH user used for deploy can run `docker` (typically by being in the `docker` group).
+- SSH uses the default port `22` (the workflow does not set a custom port).
+- Files are synced to `/usr/src/infra/vps/embassy-access` on the VPS.
+- The stack uses an external Docker network named `embassy-access-network` (the workflow creates it if missing).
+
+### Prerequisites (GitHub Secrets)
+
+Configure these secrets in the GitHub repository that hosts this workflow:
+
+- `VPS_HOST`
+- `VPS_USERNAME`
+- `VPS_SSH` (private key)
+- `VPS_PASSPHRASE` (optional; only if the key is encrypted)
+
+### How it deploys
+
+- On pushes to `main`: the workflow runs, but deploy steps only run if `vps/embassy-access/**` changed.
+- On tag push `embassy-access`: deploy steps always run (explicit release signal).
+- Manual: run from the Actions UI (`workflow_dispatch`).
+
+What the workflow does:
+- SCP syncs `vps/embassy-access` to `/usr/src/infra` on the VPS.
+- SSH runs `docker compose pull` then `docker compose up -d --build` in `/usr/src/infra/vps/embassy-access`.
+- Prunes unused images/build cache (best-effort).
+- Uses GitHub Actions `concurrency` to avoid overlapping deploy runs.
+
+### Trigger a deploy from git
+
+Normal path (push to `main` with changes under `vps/embassy-access/**`):
+
+```bash
+git add vps/embassy-access
+git commit -m "Update embassy-access stack"
+git push origin main
+```
+
+Force deploy (move tag `embassy-access` to the current commit and push it):
+
+```bash
+git tag -f embassy-access
+git push -f origin embassy-access
+```
+
+## Windows cleanup script
+
+Path: `scripts/powershell/windows_cleanup.ps1`
+
+This script is destructive and requires elevated PowerShell.
+
 ```powershell
-# Run as Administrator
-.\powershell\windows_cleanup.ps1
+# Run from repo root in an elevated PowerShell
+.\scripts\powershell\windows_cleanup.ps1
 ```
 
-**Safety Features:**
-- Checks for Administrator privileges
-- Validates paths before deletion
-- Comprehensive error reporting
-- Skips non-existent files/folders
-- Color-coded output for easy monitoring
+## Security notes
 
-## 🗂️ Large Files Handling
+- Do not commit secrets. `.env` files are gitignored.
+- Treat DB dumps as sensitive data. `backups/` is gitignored.
 
-The script reports the top 20 largest files (>100MB) on your C: drive. Some files can be safely deleted, while others are system or application files and should be kept.
-
-**Automatically handled by the script:**
-- Google Update cache (`crx_cache`)
-- Docker images/volumes/containers (if Docker is installed)
-- (Optional) NuGet package cache (uncomment in script if you want to clear)
-
-**Manual cleanup recommendations:**
-- Review large files reported by the script. Only delete files you recognize and do not need.
-- Do **not** delete system files like `winre.wim`, `system.vhd`, or application binaries unless you are certain they are not needed.
-
-## 🛡️ Safety Notes
-
-- All scripts include safety checks and error handling
-- Always run scripts as Administrator when required
-- Review script contents before execution
-- Scripts are designed to be safe but use at your own discretion
-
-## 🤝 Contributing
-
-Feel free to add new scripts or improve existing ones. Please ensure:
-- Proper error handling
-- Clear documentation
-- Safety checks for destructive operations
-- Cross-platform compatibility where applicable
-
-## 📝 License
-
-Personal use scripts - use responsibly.

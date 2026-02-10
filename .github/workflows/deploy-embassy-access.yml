@@ -64,8 +64,6 @@ jobs:
           key: ${{ secrets.VPS_SSH }}
           # Optional passphrase if the key is encrypted.
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
-          # SSH port: use secret if set, otherwise default to 22.
-          port: ${{ secrets.VPS_PORT || 22 }}
           # What to upload from the repo on the runner.
           # We sync the whole compose folder, preserving its repo-relative path.
           source: "vps/embassy-access"
@@ -94,7 +92,6 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH }}
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
-          port: ${{ secrets.VPS_PORT || 22 }}
           # Pass these env vars through to the remote shell.
           envs: TARGET_DIR,COMPOSE_PROJECT,COMPOSE_DIR,DOCKER_NETWORK
           script: |
