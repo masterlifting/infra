@@ -1,97 +1,126 @@
+# Workflow name shown in the GitHub Actions UI.
 name: Deploy embassy-access infrastructure
 
+# When this workflow should run.
 on:
+  # Manual trigger from the GitHub Actions UI.
   workflow_dispatch:
+  # Automatic trigger on pushes.
   push:
+    # Run on pushes to the main branch.
     branches: [main]
+    # Run on pushes of a tag named exactly "embassy-access".
+    # (This acts as an explicit "release/deploy now" signal.)
     tags: [embassy-access]
 
+# Prevent multiple deploys from stepping on each other.
 concurrency:
+  # All runs of this workflow share the same group, so only one can be active at a time.
   group: deploy-embassy-access
+  # If a new run starts while an older run is still running, cancel the older one.
   cancel-in-progress: true
 
 jobs:
+  # Single job that performs the deploy.
   deploy:
     name: Deploy via SSH
+    # Hosted runner OS image.
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
+        # Pull the repo contents into the runner workspace.
         uses: actions/checkout@v4
         with:
+          # Fetch full history.
+          # Needed for diff-based change detection (paths-filter) to work reliably.
           fetch-depth: 0
 
       # Only deploy on main if embassy-access files changed.
       # Tag deploys always run (explicit release signal).
       - name: Detect changes
         id: changes
+        # Only run change detection on main branch runs.
+        # For tag runs, we don't need this because tag deploys always deploy.
         if: ${{ github.ref == 'refs/heads/main' }}
+        # dorny/paths-filter compares the current commit to the base and produces boolean outputs per filter.
         uses: dorny/paths-filter@v3
         with:
+          # Define a filter named "embassy_access" that turns true when any file under vps/embassy-access changes.
           filters: |
             embassy_access:
               - 'vps/embassy-access/**'
 
-      - name: Compute target dir
-        id: vars
-        if: ${{ github.ref == 'refs/tags/embassy-access' || steps.changes.outputs.embassy_access == 'true' }}
-        shell: bash
-        run: |
-          set -eu
-          DEPLOY_DIR='${{ secrets.DEPLOY_DIR }}'
-          if [ -z "$DEPLOY_DIR" ]; then
-            echo "DEPLOY_DIR secret is required and must be set to /usr/src." >&2
-            exit 1
-          fi
-
-          # This repo is expected to live at /usr/src/infra on the VPS.
-          if [ "$DEPLOY_DIR" != "/usr/src" ]; then
-            echo "DEPLOY_DIR must be exactly /usr/src (got: $DEPLOY_DIR)." >&2
-            exit 1
-          fi
-
-          TARGET_DIR="$DEPLOY_DIR/infra"
-
-          echo "target_dir=$TARGET_DIR" >> "$GITHUB_OUTPUT"
-
       - name: Sync embassy-access folder to VPS
+        # Deploy gate: tag deploy OR changed files on main.
         if: ${{ github.ref == 'refs/tags/embassy-access' || steps.changes.outputs.embassy_access == 'true' }}
+        # Copy files over SSH using scp.
         uses: appleboy/scp-action@v0.1.7
         with:
+          # VPS connection details (all stored as GitHub Secrets).
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
+          # Private key for SSH auth.
           key: ${{ secrets.VPS_SSH }}
+          # Optional passphrase if the key is encrypted.
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
+          # SSH port: use secret if set, otherwise default to 22.
           port: ${{ secrets.VPS_PORT || 22 }}
-          source: "vps/embassy-access/**"
-          target: "${{ steps.vars.outputs.target_dir }}/vps/embassy-access"
+          # What to upload from the repo on the runner.
+          # We sync the whole compose folder, preserving its repo-relative path.
+          source: "vps/embassy-access"
+          # Where to place it on the VPS.
+          # This workflow assumes the repo lives at /usr/src/infra on the VPS.
+          # Resulting path on the VPS should be: /usr/src/infra/vps/embassy-access
+          target: "/usr/src/infra"
 
       - name: Deploy on VPS
+        # Deploy gate: tag deploy OR changed files on main.
         if: ${{ github.ref == 'refs/tags/embassy-access' || steps.changes.outputs.embassy_access == 'true' }}
+        # Run commands over SSH on the VPS.
         uses: appleboy/ssh-action@v0.1.6
         env:
-          TARGET_DIR: ${{ steps.vars.outputs.target_dir }}
+          # Base directory for this repo on the VPS.
+          TARGET_DIR: /usr/src/infra
+          # Compose "project name" (prefixes container names, networks, etc.).
           COMPOSE_PROJECT: embassy-access
+          # Directory inside the repo where docker-compose.yml lives.
           COMPOSE_DIR: vps/embassy-access
+          # External Docker network expected by the stack.
           DOCKER_NETWORK: embassy-access-network
         with:
+          # VPS connection details (same as scp step).
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH }}
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
           port: ${{ secrets.VPS_PORT || 22 }}
+          # Pass these env vars through to the remote shell.
           envs: TARGET_DIR,COMPOSE_PROJECT,COMPOSE_DIR,DOCKER_NETWORK
           script: |
+            # Remote script runs on the VPS.
+            # Exit on error (-e) and treat unset variables as errors (-u).
             set -eu
 
+            # Ensure base repo directory exists.
             mkdir -p "$TARGET_DIR"
+            # Move into the compose directory that was synced via SCP.
             cd "$TARGET_DIR/$COMPOSE_DIR"
 
+            # Ensure the external docker network exists; create it if missing.
             docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1 || docker network create --driver bridge "$DOCKER_NETWORK"
 
+            # Pull newer images if available.
+            # `--ignore-pull-failures` keeps the pull going if some services can't be pulled.
+            # `|| true` additionally prevents the deploy from failing due to transient pull issues.
             docker compose --project-name "$COMPOSE_PROJECT" pull --ignore-pull-failures || true
+            # Apply the compose stack:
+            # - `-d` runs in detached mode
+            # - `--build` rebuilds images for services that have build contexts
             docker compose --project-name "$COMPOSE_PROJECT" up -d --build
 
+            # Best-effort cleanup of unused images/build cache to reduce disk usage.
             docker image prune -f || true
             docker builder prune -f || true
+            # Show the current status of the stack (containers, ports, state).
             docker compose --project-name "$COMPOSE_PROJECT" ps

@@ -1,0 +1,92 @@
+#docker network create --driver bridge embassy-access-network
+
+services:
+  browser-webapi:
+    image: browser-webapi:dev
+    container_name: embassy-access-browser-webapi
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=3001
+      - USER_DATA_DIR=/app/chrome-profile
+    networks:
+      - embassy-access-network
+    ports:
+      - "3001:3001"
+    volumes:
+      - chrome-data:/app/chrome-profile
+    restart: unless-stopped
+
+  postgres:
+    build: ./postgres
+    container_name: embassy-access-postgres
+    environment:
+      POSTGRES_DB: eadb
+      POSTGRES_USER: eauser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eapassword}
+      BACKUP_INTERVAL_DAYS: ${BACKUP_INTERVAL_DAYS:-7}
+      PGDATA: /var/lib/postgresql/data
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=64MB"
+      - "-c"
+      - "effective_cache_size=256MB"
+      - "-c"
+      - "maintenance_work_mem=32MB"
+      - "-c"
+      - "work_mem=2MB"
+      - "-c"
+      - "autovacuum=on"
+      - "-c"
+      - "autovacuum_max_workers=1"
+      - "-c"
+      - "autovacuum_naptime=5min"
+      - "-c"
+      - "autovacuum_vacuum_threshold=100"
+      - "-c"
+      - "autovacuum_vacuum_scale_factor=0.4"
+      - "-c"
+      - "autovacuum_vacuum_cost_delay=20ms"
+      - "-c"
+      - "autovacuum_vacuum_cost_limit=200"
+      - "-c"
+      - "max_connections=25"
+      - "-c"
+      - "checkpoint_timeout=15min"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+    networks:
+      - embassy-access-network
+    ports:
+      - "3002:5432"
+    volumes:
+      - postgres-volume:/var/lib/postgresql
+      - ./backups:/backups
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: embassy-access-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    networks:
+      - embassy-access-network
+    ports:
+      - "88:80"
+    volumes:
+      - pgadmin-volume:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+networks:
+  embassy-access-network:
+    name: embassy-access-network
+    external: true
+
+volumes:
+  chrome-data:
+  postgres-volume:
+  pgadmin-volume:
+  pgadmin-data:
