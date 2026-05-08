@@ -1,0 +1,59 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "shell": "pwsh",
+  "instructions": [
+    "scripts/README.md"
+  ],
+  "agent": {
+    "general": {
+      "description": "General-purpose subagent for complex multi-step tasks.",
+      "mode": "subagent",
+      "steps": 10
+    },
+    "explore": {
+      "description": "Read-only subagent for codebase exploration.",
+      "mode": "subagent",
+      "steps": 6
+    }
+  },
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "git branch": "allow",
+      "git branch --list*": "allow",
+      "git branch --show-current*": "allow",
+      "git rev-parse*": "allow",
+      "git remote -v*": "allow",
+      "git remote get-url*": "allow",
+      "git ls-files*": "allow",
+      "git -C * status*": "allow",
+      "git -C * diff*": "allow",
+      "git -C * log*": "allow",
+      "git -C * show*": "allow",
+      "git -C * branch": "allow",
+      "git -C * branch --list*": "allow",
+      "git -C * branch --show-current*": "allow",
+      "git -C * rev-parse*": "allow",
+      "git -C * remote -v*": "allow",
+      "git -C * remote get-url*": "allow",
+      "git -C * ls-files*": "allow",
+      "dotnet --info*": "allow",
+      "dotnet --version*": "allow",
+      "dotnet fsi *": "allow",
+      "git commit*": "ask",
+      "git push*": "ask",
+      "git reset --hard*": "deny",
+      "git clean -fd*": "deny",
+      "git checkout -- *": "deny",
+      "rm -rf *": "deny",
+      "Remove-Item * -Recurse -Force*": "deny",
+      "Remove-Item -Recurse -Force *": "deny",
+      "Remove-Item -LiteralPath * -Recurse -Force*": "deny"
+    },
+    "edit": "ask"
+  }
+}
