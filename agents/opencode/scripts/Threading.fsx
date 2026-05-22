@@ -1,13 +1,4 @@
-(*
-    Threading helpers.
-    Ported from: fsharp-infrastructure/src/prelude/Threading.fs
-
-    Usage:
-      #load "Threading.fsx"
-      if Prelude.Threading.notCanceled token then ...
-*)
-
-namespace Prelude
+namespace Common
 
 module Threading =
     open System.Threading

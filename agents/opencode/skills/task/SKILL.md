@@ -1,6 +1,6 @@
 ---
 name: task
-description: Create or update project `.tasks` items using the embedded template. Use when the user asks to create/update/validate task tracking in `.tasks` at repo root.
+description: Run when the user asks to create, update, validate, or resume project task tracking in `.tasks/` at repo root, or asks to structure multi-step implementation work into a task file. Do not use for one-off edits that do not need task tracking.
 ---
 
 # Task Tracker
@@ -30,8 +30,7 @@ project `.tasks/` folder at the repository root.
 
 1. Locate the target repository root and any repo-local task guidance.
 2. Use `.tasks/` as the only supported project task root (repository root level).
-3. Init a local .git repository for task tracking if `.tasks/` is not already a git repo and the user has not
-   forbidden git manipulation.
+3. Keep `.tasks/` inside the parent repository workflow; do not create a nested `.git` in `.tasks/` unless explicitly requested.
 4. If creating a new task and the user has not provided an ID, ask for one.
 5. Create or update `.tasks/{TASK-ID}/TASK.md`.
 6. Create `docs/` by default inside `.tasks/{TASK-ID}/`. Add `imgs/` and
@@ -62,6 +61,11 @@ project `.tasks/` folder at the repository root.
 16. For noisy verification, record command, result, and the relevant excerpt in
     `TASK.md`; store full raw output under
     `.tasks/{TASK-ID}/docs/` only when it is useful evidence.
+
+## Output
+
+- Primary artifact: `.tasks/{TASK-ID}/TASK.md` updated using the template and current workflow state.
+- Chat output: short status update with progress, blockers, next pending decision, and any explicit confirmation gate.
 
 ## Optional External Context
 

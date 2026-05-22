@@ -1,13 +1,4 @@
-(*
-    Extensions for Seq<'T>.
-    Ported from: fsharp-infrastructure/src/prelude/Seq.fs
-
-    Usage:
-      #load "Seq.fsx"
-      [(1,"a"); (2,"b")] |> Prelude.Seq.unzip   // -> [1;2], ["a";"b"]
-*)
-
-namespace Prelude
+namespace Common
 
 module Seq =
     let unzip tuples =

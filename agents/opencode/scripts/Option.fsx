@@ -1,13 +1,4 @@
-(*
-    Extensions for Option<'T>.
-    Ported from: fsharp-infrastructure/src/prelude/Option.fs
-
-    Usage:
-      #load "Option.fsx"
-      Prelude.Option.min (Some 3) (Some 5)   // -> Some 3
-*)
-
-namespace Prelude
+namespace Common
 
 module Option =
     let toResult error =

@@ -1,13 +1,4 @@
-(*
-    Extensions for exn (Exception).
-    Ported from: fsharp-infrastructure/src/prelude/Exception.fs
-
-    Usage:
-      #load "Exception.fsx"
-      try ... with ex -> Prelude.Exception.toMessage ex
-*)
-
-namespace Prelude
+namespace Common
 
 module Exception =
     let toMessage (ex: exn) =

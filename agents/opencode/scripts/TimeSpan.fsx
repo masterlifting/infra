@@ -1,13 +1,4 @@
-(*
-    Extensions for TimeSpan.
-    Ported from: fsharp-infrastructure/src/prelude/TimeSpan.fs
-
-    Usage:
-      #load "TimeSpan.fsx"
-      TimeSpan.FromHours(2.5) |> Prelude.TimeSpan.print   // -> "2h 30m"
-*)
-
-namespace Prelude
+namespace Common
 
 module TimeSpan =
     open System

@@ -1,21 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "shell": "pwsh",
-  "instructions": [
-    "scripts/README.md"
-  ],
-  "agent": {
-    "general": {
-      "description": "General-purpose subagent for complex multi-step tasks.",
-      "mode": "subagent",
-      "steps": 10
-    },
-    "explore": {
-      "description": "Read-only subagent for codebase exploration.",
-      "mode": "subagent",
-      "steps": 6
-    }
-  },
   "permission": {
     "bash": {
       "*": "ask",
@@ -43,12 +28,16 @@
       "git -C * ls-files*": "allow",
       "dotnet --info*": "allow",
       "dotnet --version*": "allow",
-      "dotnet fsi *": "allow",
+      "dotnet fsi \"$env:USERPROFILE\\.config\\opencode\\commands\\opencode\\scripts\\AuditModels.fsx\"*": "allow",
+      "dotnet fsi *": "ask",
       "git commit*": "ask",
       "git push*": "ask",
       "git reset --hard*": "deny",
       "git clean -fd*": "deny",
+      "git clean -*": "deny",
       "git checkout -- *": "deny",
+      "git restore *": "deny",
+      "git -C * restore *": "deny",
       "rm -rf *": "deny",
       "Remove-Item * -Recurse -Force*": "deny",
       "Remove-Item -Recurse -Force *": "deny",

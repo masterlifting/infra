@@ -1,48 +1,61 @@
-# F# Scripting
+# F# Scripting Index
 
-Local entrypoint for repo-style `.fsx` automation and shared prelude helpers.
+```text
+kind: helper-index
+scope: scripts/*.fsx
+namespace: Common
+conventions: rules/software/dotnet/fsharp/engineering.md
+load_style: relative #load from repo root
+preferred_call_style: Shell.run
+update_policy: keep file/module/export metadata synchronized with scripts/*.fsx
+```
 
-- Load only the helpers a script needs.
-- Helpers expose `Prelude.X` modules to avoid shadowing FSharp.Core modules.
-- Use `open Prelude.CE` and `open Prelude.ActivePattern`; prefer qualified access for the rest, for example `Prelude.Shell.run`.
-- Keep repo-specific workflow logic in the calling script instead of shared helpers.
+## Change Checklist
+
+```text
+1) If a helper file is added, removed, or renamed, update one index row per file.
+2) If module names change, update the `modules` column and the `## Usage` snippet if needed.
+3) If exported helpers change, update `key_exports` and adjust `purpose` wording.
+```
 
 ## Included Helpers
 
-- `ActivePattern.fsx` for common parsing patterns
-- `Args.fsx` for CLI argument parsing
-- `Async.fsx` for async combinators
-- `CE.fsx` for `result` helpers
-- `Exception.fsx` for exception message extraction
-- `Map.fsx` for map helpers
-- `Option.fsx` for option helpers
-- `ResultAsync.fsx` for async-result combinators
-- `Result.fsx` for result helpers
-- `Seq.fsx` for sequence helpers
-- `Shell.fsx` for OS-aware command execution
-- `String.fsx` for string helpers
-- `Threading.fsx` for cancellation helpers
-- `TimeSpan.fsx` for duration formatting
+```text
+format: file | modules | key_exports | purpose
+scripts/ActivePatterns.fsx | AP | IsString, IsInt, IsFloat, IsGuid, IsTimeSpan, IsDateOnly, IsTimeOnly, IsDateTime, IsEmail, IsLettersOrNumbers | active patterns for parsing and validation
+scripts/Async.fsx | Async | bind, map | async combinators
+scripts/Cli.fsx | Args, Shell | Args.ofFsi, Args.get, Args.getOrDefault, Args.getList, Args.has; Shell.run, Shell.runInDir | CLI argument parsing and OS-aware shell execution
+scripts/ComputationExpressions.fsx | CE | result, asyncResult | result and async-result computation expression builders
+scripts/Exception.fsx | Exception | toMessage | exception-to-message normalization
+scripts/Map.fsx | Map | combine, removeKeys, reverse | map helpers
+scripts/Option.fsx | Option | toResult, min, max | option helpers
+scripts/Result.fsx | Result, ResultAsync | Result.choose, Result.unzip; ResultAsync.wrap, bind, bindAsync, map, mapAsync, mapError, mapErrorAsync, defaultWith, apply, applyAsync | result and async-result helpers
+scripts/Seq.fsx | Seq | unzip | sequence helpers
+scripts/String.fsx | String | fromTimeSpan, fromDateTime, addLines, toDefault, has, hasSeq | string/date-time helpers
+scripts/Threading.fsx | Threading | canceled, notCanceled | cancellation token helpers
+scripts/TimeSpan.fsx | TimeSpan | print | compact duration formatting
+```
 
 ## Usage
 
 ```fsharp
-#load "CE.fsx"
-#load "Shell.fsx"
+#load "scripts/ComputationExpressions.fsx"
+#load "scripts/Cli.fsx"
 
-open Prelude.CE
+open Common
+open Common.CE
 
 result {
-    let! output = Prelude.Shell.run "dotnet --info"
+    let! output = Shell.run "dotnet --info"
     return output
 }
 ```
 
-## Conventions
+## Related Command/Skill Scripts
 
-- Prefer F# scripts (`.fsx`) for reusable local automation.
-- Use `Result` and `Option` for expected failures and missing values.
-- Avoid `.Result` and `.Wait()` on async/Task values; use `async {}` with `Async.AwaitTask` or `asyncResult {}`.
-- Use `(* *)` file headers instead of XML doc comments in scripts.
-- Add dry-run or report-only modes for scripts that make structural or destructive changes.
-- Use shared helpers when script logic grows beyond a few inline commands.
+These scripts are intentionally outside the `scripts/*.fsx` helper-index scope, but are useful entry points for OpenCode workflows:
+
+```text
+commands/opencode/scripts/AuditModels.fsx | model inventory and routing report for connected OpenCode providers
+skills/youtrack/scripts/youtrack.fsx | YouTrack REST helper used by the youtrack skill
+```

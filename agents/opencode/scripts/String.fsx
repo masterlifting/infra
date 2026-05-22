@@ -1,14 +1,4 @@
-(*
-    Extensions for String.
-    Ported from: fsharp-infrastructure/src/prelude/String.fs
-    Note: encrypt/decrypt/toHash omitted (require Infrastructure.Domain error types).
-
-    Usage:
-      #load "String.fsx"
-      "hello world" |> Prelude.String.has "world"   // -> true
-*)
-
-namespace Prelude
+namespace Common
 
 module String =
     open System

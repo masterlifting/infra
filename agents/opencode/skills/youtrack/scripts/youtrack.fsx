@@ -1,4 +1,4 @@
-#load "../../../scripts/CE.fsx"
+#load "../../../scripts/ComputationExpressions.fsx"
 #load "../../../scripts/Exception.fsx"
 
 open System
@@ -7,7 +7,8 @@ open System.Net.Http
 open System.Net.Http.Headers
 open System.Text
 open System.Text.Json
-open Prelude.CE
+open Common
+open Common.CE
 
 let usage =
     """
@@ -28,6 +29,9 @@ Defaults:
 Required environment:
   YOUTRACK_API        Permanent token with the required YouTrack permissions.
                       Read from process env first, then Windows user env.
+
+Optional environment:
+  YOUTRACK_BASE_URL   Override the default YouTrack base URL.
 """
 
 let argv =
@@ -50,6 +54,10 @@ let readToken () =
     match readEnvOptional "YOUTRACK_API" with
     | Some token -> Ok token
     | None -> Error "Missing required environment variable: YOUTRACK_API"
+
+let readBaseUrl () =
+    readEnvOptional "YOUTRACK_BASE_URL"
+    |> Option.defaultValue defaultBaseUrl
 
 let tryArg (name: string) (args: string list) =
     args
@@ -99,7 +107,7 @@ let request (methodName: string) (path: string) (body: string option) =
         | Error message -> return Error message
         | Ok token ->
             try
-                let uri = defaultBaseUrl.TrimEnd('/') + apiPath path
+                let uri = (readBaseUrl ()).TrimEnd('/') + apiPath path
 
                 use req = new HttpRequestMessage(HttpMethod(methodName.ToUpperInvariant()), uri)
                 req.Headers.Authorization <- AuthenticationHeaderValue("Bearer", token)
@@ -117,7 +125,7 @@ let request (methodName: string) (path: string) (body: string option) =
                 else
                     return Error $"YouTrack request failed: {(int response.StatusCode)} {response.ReasonPhrase}{Environment.NewLine}{text}"
             with ex ->
-                return Error (Prelude.Exception.toMessage ex)
+                return Error (Exception.toMessage ex)
     }
 
 let fields (value: string) =

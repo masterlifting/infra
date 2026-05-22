@@ -1,13 +1,4 @@
-(*
-    Extensions for Map<'K, 'V>.
-    Ported from: fsharp-infrastructure/src/prelude/Map.fs
-
-    Usage:
-      #load "Map.fsx"
-      Prelude.Map.combine map1 map2
-*)
-
-namespace Prelude
+namespace Common
 
 module Map =
     let combine (map1: Map<'k, 'v>) (map2: Map<'k, 'v>) =

@@ -1,11 +1,21 @@
 ---
 name: youtrack
-description: Use the YouTrack REST API from OpenCode for issue search, issue reads, issue creation, issue updates, comments, command application, project/user lookup, and task-sync workflows. Use when the user mentions YouTrack, YouTrack issues, YouTrack tasks, YouTrack REST, tracker sync, creating or updating tracker items, adding YouTrack comments, or checking YouTrack project metadata.
+description: Run when the user mentions YouTrack issues/tasks, YouTrack REST, tracker sync, or asks to search/read/create/update/comment YouTrack items or check YouTrack project/user metadata. Use YouTrack REST API flows from OpenCode; do not use when no YouTrack operation is involved.
 ---
 
 # YouTrack REST
 
+## Purpose
+
 Use this skill to operate YouTrack through its REST API with explicit, auditable HTTP requests. Prefer the bundled F# helper for routine calls.
+
+## Guardrails
+
+- Do not write tokens into repo files, task files, command history summaries, or final answers.
+- Require explicit user confirmation for each write operation to YouTrack (create, update, comment, command execution, delete), even if the user gave a general "go ahead" earlier.
+- Confirm destructive operations (for example deletion) before executing.
+- Treat issue visibility, comments, attachments, tokens, and user emails as sensitive.
+- Keep requests scoped with explicit `fields` and narrow query parameters.
 
 ## Configuration
 
@@ -23,14 +33,19 @@ $env:YOUTRACK_API = "<token>"
 
 ## Workflow
 
-1. Read [references/rest-patterns.md](references/rest-patterns.md) before constructing requests.
-2. Use [scripts/youtrack.fsx](scripts/youtrack.fsx) for routine REST calls; use direct HTTP only when the helper does not cover the operation.
+1. Read `skills/youtrack/references/rest-patterns.md` before constructing requests.
+2. Use `skills/youtrack/scripts/youtrack.fsx` for routine REST calls; use direct HTTP only when the helper does not cover the operation.
 3. Verify authentication with `GET /api/users/me?fields=id,login,fullName,email` before the first real operation.
 4. Use explicit `fields` parameters on every request so responses stay small and predictable.
 5. For issue search, URL-encode the `query` value and include `$top`/`$skip` for pagination.
 6. For writes, read the current issue first unless the task is creating a new issue.
-7. Confirm destructive actions such as issue deletion before executing them, even if the user asked generally.
+7. Before any write operation, restate the exact action and target issue(s) and wait for explicit confirmation.
 8. After a create/update/comment/command call, read back the changed issue or response fields and report the resulting `idReadable`, summary, and changed fields.
+
+## Output
+
+- Return concise, auditable results with request intent, key response fields, and resulting issue IDs/summaries.
+- For writes, include the before/after change summary and any follow-up confirmation gate.
 
 ## F# Helper
 
@@ -54,7 +69,7 @@ The helper supports `YOUTRACK_BASE_URL` override, defaults the base URL when uns
 - Add comment: `POST /api/issues/{issueID}/comments?fields=id,text,author(login,fullName),created`.
 - Apply a YouTrack command: use the Commands resource when changing state, assignee, tags, or other command-style updates.
 
-## Safety
+## Safety (Detailed)
 
 - Treat issue visibility, comments, attachments, tokens, user emails, and private project metadata as sensitive.
 - Avoid broad reads unless the user asks for a report; prefer a narrow query and `$top`.
