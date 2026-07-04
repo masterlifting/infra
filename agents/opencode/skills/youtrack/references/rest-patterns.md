@@ -9,13 +9,15 @@ Authoritative docs:
 
 ## Base URL
 
-The REST API base is hardcoded in the F# helper:
+The F# helper defaults the REST API base to:
 
 ```text
 https://gizmopowered.myjetbrains.com/youtrack/api
 ```
 
-Configured service URL:
+Override it with `YOUTRACK_BASE_URL` when needed.
+
+Configured default service URL:
 
 - `https://gizmopowered.myjetbrains.com/youtrack/api`
 
@@ -42,9 +44,9 @@ Content-Type: application/json
 Prefer the bundled F# helper for routine calls:
 
 ```powershell
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- me
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- search "for: me #Unresolved" --top 20
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- request GET "/users/me?fields=id,login,fullName,email"
+dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- me
+dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- search "for: me #Unresolved" --top 20
+dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- request GET "/users/me?fields=id,login,fullName,email"
 ```
 
 Use this direct PowerShell pattern only when the helper does not cover the operation:

@@ -1,8 +1,8 @@
 ---
 description: Read-only subagent for codebase exploration.
-model: github-copilot/gpt-5-mini
 mode: subagent
-steps: 6
+model: deepseek/deepseek-v4-pro
+steps: 30
 permission:
   edit: deny
   bash: ask

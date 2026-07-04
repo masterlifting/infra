@@ -2,6 +2,7 @@ namespace Common
 
 module AP =
     open System
+    open System.Globalization
 
     let (|IsString|_|) (input: string | null) =
         match input with
@@ -12,12 +13,12 @@ module AP =
             | _ -> None
 
     let (|IsInt|_|) (input: string) =
-        match Int32.TryParse input with
+        match Int32.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture) with
         | true, value -> Some value
         | _ -> None
 
     let (|IsFloat|_|) (input: string) =
-        match Double.TryParse input with
+        match Double.TryParse(input, NumberStyles.Float ||| NumberStyles.AllowThousands, CultureInfo.InvariantCulture) with
         | true, value -> Some value
         | _ -> None
 
@@ -27,22 +28,22 @@ module AP =
         | _ -> None
 
     let (|IsTimeSpan|_|) (input: string) =
-        match TimeSpan.TryParse input with
+        match TimeSpan.TryParse(input, CultureInfo.InvariantCulture) with
         | true, value -> Some value
         | _ -> None
 
     let (|IsDateOnly|_|) (input: string) =
-        match DateOnly.TryParse input with
+        match DateOnly.TryParse(input, CultureInfo.InvariantCulture) with
         | true, value -> Some value
         | _ -> None
 
     let (|IsTimeOnly|_|) (input: string) =
-        match TimeOnly.TryParse input with
+        match TimeOnly.TryParse(input, CultureInfo.InvariantCulture) with
         | true, value -> Some value
         | _ -> None
 
     let (|IsDateTime|_|) (input: string) =
-        match DateTime.TryParse input with
+        match DateTime.TryParse(input, CultureInfo.InvariantCulture, DateTimeStyles.None) with
         | true, value -> Some value
         | _ -> None
 

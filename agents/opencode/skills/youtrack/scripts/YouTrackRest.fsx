@@ -15,13 +15,13 @@ let usage =
 YouTrack REST helper
 
 Usage:
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- me
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- get ISSUE-ID
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- search "for: me #Unresolved" [--top 20] [--skip 0]
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- create --project-id 0-0 --summary "Title" [--description "Details"]
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- comment ISSUE-ID --text "Comment text"
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- request GET "/users/me?fields=id,login,fullName,email"
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- request POST "/issues/PROJ-1" --body-file payload.json
+  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- me
+  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- get ISSUE-ID
+  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- search "for: me #Unresolved" [--top 20] [--skip 0]
+  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- create --project-id 0-0 --summary "Title" [--description "Details"]
+  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- comment ISSUE-ID --text "Comment text"
+  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- request GET "/users/me?fields=id,login,fullName,email"
+  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- request POST "/issues/PROJ-1" --body-file payload.json
 
 Defaults:
   Base URL: https://gizmopowered.myjetbrains.com/youtrack
@@ -44,6 +44,7 @@ let argv =
 
 let defaultBaseUrl = "https://gizmopowered.myjetbrains.com/youtrack"
 let httpClient = new HttpClient()
+AppDomain.CurrentDomain.ProcessExit.Add(fun _ -> httpClient.Dispose())
 
 let readEnvOptional name =
     [ Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process)
@@ -77,6 +78,15 @@ let requireArg (name: string) (args: string list) =
     |> function
         | Some value -> Ok value
         | None -> Error $"Missing required argument: {name}"
+
+let readBodyFile (path: string) =
+    try
+        if File.Exists path then
+            Ok(File.ReadAllText path)
+        else
+            Error $"Body file not found: {path}"
+    with ex ->
+        Error(Exception.toMessage ex)
 
 let json value =
     JsonSerializer.Serialize(value)
@@ -175,11 +185,16 @@ let command =
             return request "POST" path (Some body)
         }
     | "request" :: methodName :: path :: rest ->
-        let body =
-            tryArg "--body-file" rest
-            |> Option.map File.ReadAllText
+        result {
+            let! body =
+                tryArg "--body-file" rest
+                |> Option.map readBodyFile
+                |> function
+                    | Some body -> body |> Result.map Some
+                    | None -> Ok None
 
-        Ok(request methodName path body)
+            return request methodName path body
+        }
     | _ ->
         Error usage
 

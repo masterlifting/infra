@@ -4,12 +4,10 @@ module String =
     open System
 
     let fromTimeSpan (value: TimeSpan) =
-        let format = "dd\\.hh\\:mm\\:ss"
-        value.ToString format
+        value.ToString("dd\\.hh\\:mm\\:ss")
 
     let fromDateTime (value: DateTime) =
-        let format = "yyyy-MM-dd HH:mm:ss"
-        value.ToString format
+        value.ToString("yyyy-MM-dd HH:mm:ss")
 
     let addLines count =
         Seq.init count (fun _ -> Environment.NewLine) |> String.concat ""

@@ -1,0 +1,15 @@
+{
+  "enabledProviders": ["openai", "deepseek"],
+  "formatStyle": "allWindows",
+  "enableToast": false,
+  "tuiSidebarPanel": {
+    "enabled": true
+  },
+  "tuiCompactStatus": {
+    "enabled": false
+  },
+  "maintainerAnnouncements": {
+    "enabled": true,
+    "home": true
+  }
+}

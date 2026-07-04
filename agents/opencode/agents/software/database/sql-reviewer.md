@@ -14,6 +14,7 @@ Review scope:
 
 - Load `@C:/Users/andre/.config/opencode/rules/software/architecture.md` for general principles.
 - Load `@C:/Users/andre/.config/opencode/rules/software/database/engineering-sql.md` for migration/query guidance.
+- If the assigned review is testing-focused, load `@C:/Users/andre/.config/opencode/rules/software/database/testing-sql.md`.
 - Cross-check `@C:/Users/andre/.config/opencode/rules/security.md` for injection, secrets, and sensitive data exposure risks.
 - Flag data-loss, blocking migration, transactionality, and idempotency risks first.
 

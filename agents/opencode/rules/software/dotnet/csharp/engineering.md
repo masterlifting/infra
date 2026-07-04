@@ -49,7 +49,8 @@
 - Prefer named arguments when readability improves or optional arguments are skipped; place optional after required.
 - Prefer return values over input mutation; use named tuples for small multi-value returns.
 - Keep methods small and focused; use expression-bodied members for trivial one-expression members.
-- Keep property getters fast and side-effect free.
+- Keep property getters fast, side-effect free, and transparent: properties should expose already-available state or cheap calculated values only. If access performs non-trivial work, allocates defensive copies, does I/O, mutates state, queries services, or otherwise hides runtime logic, model it as an explicit method (`Get...`, `Create...`, `Load...`, etc.) instead of a property.
+- Keep constructors simple and predictable. Do not hide non-trivial initialization, I/O, service calls, heavy computation, or business logic in constructors; use factories, initialization methods, lazy/static cached data, or explicit load/create methods when work can fail or has meaningful cost.
 
 ## Option and Result Modeling
 
@@ -107,7 +108,7 @@
 
 - Use `StringBuilder` for repeated concatenation in loops.
 - Use `StringComparison.Ordinal` for non-user-facing comparisons.
-- Use interpolated string handlers only with logging APIs that optimize interpolation.\
+- Use interpolated string handlers only with logging APIs that optimize interpolation.
 - Use `string.Intern` only for a small set of known, frequently repeated strings; avoid it for general use due to memory retention risks.
 
 ## Logging and Diagnostics
@@ -115,6 +116,9 @@
 - Use structured logging templates by default.
 - Use `nameof(...)` for refactor-safe member names in logs and validation messages.
 - Use `[CallerArgumentExpression]` to improve guard and validation diagnostics.
+- Prefix lifecycle log messages with the component or integration name in brackets, for example `[Payments]` or `[Braze]`.
+- Use consistent lifecycle wording for bookend logs: `Start <details>` on operation entry, `Finish <details>` on successful completion, and `Failed <description>` for failures.
+- Keep structured placeholders in log templates, for example `{UserId}` or `{OrderId}`; do not collapse diagnostics into pre-formatted strings.
 
 ## Exception Handling
 

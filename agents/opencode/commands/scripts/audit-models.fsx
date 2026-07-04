@@ -349,11 +349,16 @@ let agentsDir = Path.Combine(configRoot, "agents")
 let currentAgentRows () =
     if not (Directory.Exists agentsDir) then []
     else
-        Directory.EnumerateFiles(agentsDir, "*.md")
+        Directory.EnumerateFiles(agentsDir, "*.md", SearchOption.AllDirectories)
         |> Seq.choose (fun file ->
             let text = File.ReadAllText(file)
             let found = Regex.Match(text, @"(?m)^model:\s*(\S+)\s*$")
-            if found.Success then Some [ Path.GetFileNameWithoutExtension(file); found.Groups.[1].Value ] else None)
+
+            let name =
+                let relative = Path.GetRelativePath(agentsDir, file).Replace('\\', '/')
+                relative.Substring(0, relative.Length - ".md".Length)
+
+            if found.Success then Some [ name; found.Groups.[1].Value ] else None)
         |> Seq.sortBy List.head
         |> Seq.toList
 

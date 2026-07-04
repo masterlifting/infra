@@ -46,7 +46,9 @@ module ResultAsync =
     let mapAsync f workflow =
         async {
             match! workflow with
-            | Ok result -> return Ok <| f result
+            | Ok result ->
+                let! mapped = f result
+                return Ok mapped
             | Error err -> return Error err
         }
 
@@ -71,7 +73,7 @@ module ResultAsync =
             return Result.defaultWith f result
         }
 
-    let apply f workflow =
+    let validate f workflow =
         async {
             match! workflow with
             | Ok w ->
@@ -84,7 +86,7 @@ module ResultAsync =
                 | Error errF -> return Error errF
         }
 
-    let applyAsync f workflow =
+    let validateAsync f workflow =
         async {
             match! workflow with
             | Ok w ->
@@ -96,3 +98,9 @@ module ResultAsync =
                 | Ok() -> return Error error
                 | Error errF -> return Error errF
         }
+
+    [<System.Obsolete("Use validate; apply is a backwards-compatible alias with validation-checkpoint semantics.")>]
+    let apply f workflow = validate f workflow
+
+    [<System.Obsolete("Use validateAsync; applyAsync is a backwards-compatible alias with validation-checkpoint semantics.")>]
+    let applyAsync f workflow = validateAsync f workflow

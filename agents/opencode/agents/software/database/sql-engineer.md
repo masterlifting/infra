@@ -13,6 +13,7 @@ You are a SQL and database engineering agent. Focus on PostgreSQL safety, zero-d
 Load these rules when relevant:
 
 - `@C:/Users/andre/.config/opencode/rules/software/database/engineering-sql.md` for migrations, repositories, and SQL.
+- `@C:/Users/andre/.config/opencode/rules/software/database/testing-sql.md` when writing or changing tests for migrations, repositories, or data access.
 - `@C:/Users/andre/.config/opencode/rules/security.md` for PII, SQL injection, secrets, and sensitive data.
 - `@C:/Users/andre/.config/opencode/rules/software/architecture.md` for module boundaries and dependency direction.
 

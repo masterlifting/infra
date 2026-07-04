@@ -34,7 +34,7 @@ $env:YOUTRACK_API = "<token>"
 ## Workflow
 
 1. Read `skills/youtrack/references/rest-patterns.md` before constructing requests.
-2. Use `skills/youtrack/scripts/youtrack.fsx` for routine REST calls; use direct HTTP only when the helper does not cover the operation.
+2. Use `skills/youtrack/scripts/YouTrackRest.fsx` for routine REST calls; use direct HTTP only when the helper does not cover the operation.
 3. Verify authentication with `GET /api/users/me?fields=id,login,fullName,email` before the first real operation.
 4. Use explicit `fields` parameters on every request so responses stay small and predictable.
 5. For issue search, URL-encode the `query` value and include `$top`/`$skip` for pagination.
@@ -52,10 +52,10 @@ $env:YOUTRACK_API = "<token>"
 Run through `dotnet fsi`:
 
 ```powershell
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- --help
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- me
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- search "for: me #Unresolved" --top 20
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\youtrack.fsx" -- get PROJ-123
+dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- --help
+dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- me
+dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- search "for: me #Unresolved" --top 20
+dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- get PROJ-123
 ```
 
 The helper supports `YOUTRACK_BASE_URL` override, defaults the base URL when unset, reads `YOUTRACK_API`, prints JSON, and keeps token handling out of repo files.

@@ -35,6 +35,7 @@ When command arguments include optimization or apply/edit/update intent, run thi
 6. Validate lightly.
    - If files were edited, run `git diff --check`.
    - Verify structural integrity for reviewed or touched files (frontmatter/config keys/placeholders).
+   - Verify the bash permission map lives only in `opencode.json` (single source of truth): no `agents/*.md` file duplicates the allow/ask/deny map, and the deny list still covers destructive commands (`git reset --hard`, `git clean`, `git restore`, `rm -rf`, `Remove-Item -Recurse -Force`).
 7. Report mapping and outcome.
    - List accepted, translated, skipped ideas and why.
    - List changed files and validation results.

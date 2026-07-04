@@ -8,6 +8,7 @@ module CE =
         member _.Zero() = Ok()
         member _.Delay(f: unit -> Result<'a, 'e>) = f
         member _.Run(f: unit -> Result<'a, 'e>) = f ()
+
         member _.Combine(a: Result<unit, 'e>, b: unit -> Result<'b, 'e>) =
             match a with
             | Ok() -> b ()
@@ -35,6 +36,7 @@ module CE =
         member _.ReturnFrom(m: Result<'a, 'e>) = async { return m }
         member _.Zero() = async { return Ok() }
         member _.Delay(f: unit -> Async<Result<'a, 'e>>) = async { return! f () }
+
         member _.Combine(a: Async<Result<unit, 'e>>, b: Async<Result<'b, 'e>>) =
             async {
                 match! a with

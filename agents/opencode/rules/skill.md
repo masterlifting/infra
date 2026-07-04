@@ -51,9 +51,10 @@ Do **not** add a `## Trigger` section unless explicitly required by a specific r
 ## Route Reference Conventions
 
 - Keep references aligned with current repository routes:
-  - Rules: `@rules/...` (example: `@rules/software/dotnet/csharp/engineering.md`).
+  - For global/shared OpenCode infrastructure under `C:/Users/andre/.config/opencode`, use absolute rule routes like `@C:/Users/andre/.config/opencode/rules/...`.
+  - For project-local repositories that own their own `rules/` directory, project-local rule routes like `@rules/...` are acceptable.
   - Agents: `agents/...` for file paths, `software/...` for subagent invocation names.
-  - Commands: `/opencode/...` for runnable command routes (example: `/opencode/audit-models`).
+  - Commands: `/opencode/...` for runnable command routes (example: `/opencode/audit-infra`).
 - Do not use deprecated or ambiguous route forms in skill text.
 - Prefer canonical, existing paths over aliases.
 

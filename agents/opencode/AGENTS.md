@@ -11,6 +11,24 @@ You help me in coding and automate my life using this and local opencode infrast
 - Do not commit or push without first showing the proposed commit message and getting explicit user confirmation.
 - Never overwrite user manual edits silently. If a file changed externally, ask before editing.
 
+## Git
+
+- Ask for the task ID before creating a new branch.
+- Branch naming: `{TASK-ID}-description` (e.g., `BACK-12345-add-auth`) unless the repo defines another format.
+- Commit message format:
+
+  ```
+  {TASK-ID}:
+
+  - change 1
+  - change 2
+  ```
+
+## Build and test delegation
+
+- Builds and tests are delegated to owner agents, not run inline: the language team's engineer owns builds, the tester owns test runs (see `rules/software/team.md`).
+- Run them with quiet flags and report pass/fail plus relevant error lines only — never full logs.
+
 ## F# automation preference
 
 - For automation scripts, prefer F# for its succinctness and powerful scripting capabilities.
@@ -23,17 +41,21 @@ You help me in coding and automate my life using this and local opencode infrast
 
 - Skills are invoked via the `skill` tool or `@mention`.
 - The `task` skill creates task tracking at `.tasks/{TASK-ID}/TASK.md` (repo root level).
-- In long sessions, use the `/audit-session` command around every 10th assistant/model response to produce a short executor-ready optimization brief, unless it would interrupt an urgent user task.
+- Tag temporary debug logging with `// DEBUG-REMOVE`. After verifying, strip those lines before committing.
+- For edits spanning more than 10 files, produce a numbered batch plan first; execute in chunks of ~10 with a confirmation pause between batches.
 
 ## Agent configuration consistency
 
-- Keep agent definitions file-based under `agents/*.md` for both global and local OpenCode infrastructure.
+- Keep agent definitions file-based under `agents/**/*.md` for both global and local OpenCode infrastructure.
 - Do not define or maintain inline agent blocks in `opencode.json` when an `agents/*.md` definition exists (or should exist).
 - When adding/changing an agent, update the corresponding file in `agents/` rather than `opencode.json`.
+- Do not edit `opencode.json`, `AGENTS.md`, or files under `agents/`, `rules/`, `commands/`, or `skills/` without explicit per-turn user instruction. If unsure, output the diff for manual application.
 
 ## Response template
 
-When responding to a user query, use the following template:
+Reserve this template for **substantive turns** — reviews, design decisions, multi-step work, or anything with real findings. For small turns (one-line edit confirmations, quick questions, conversational/meta exchanges) reply in **plain prose**, no template.
+
+When a turn is substantive, use:
 
 ```
 **Request**: {Summarized user's request or question how you understood it}
@@ -51,6 +73,16 @@ Never send any data to third-party services without explicit user consent. Alway
 - When a referenced rule file is relevant to the current task, use the Read tool to load it and treat it as mandatory instruction.
 - Do not preemptively load every referenced rule file.
 - For creating or updating skills (`skills/*/SKILL.md`), lazy-load `@rules/skill.md` and treat it as mandatory.
+
+## Context compaction
+
+When session context is compacted or summarized, preserve:
+
+- Target branch per repo and which repos have uncommitted changes.
+- Files modified this session.
+- The next approved or pending step.
+
+Discard freely: tool outputs, intermediate search results, file contents already committed.
 
 ## Per-repo overrides
 

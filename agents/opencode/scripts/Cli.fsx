@@ -22,36 +22,62 @@ module Shell =
     open System
     open System.Diagnostics
 
+    [<Literal>]
+    let private DefaultTimeoutMs = 600000
+
     let private shellArgs (command: string) =
         if OperatingSystem.IsWindows() then
             "cmd.exe", $"/c {command}"
         else
             "/bin/sh", $"""-c "{command}" """
 
-    let private exec (psi: ProcessStartInfo) =
+    let private exec (timeoutMs: int) (psi: ProcessStartInfo) =
         psi.RedirectStandardOutput <- true
         psi.RedirectStandardError <- true
         psi.UseShellExecute <- false
         psi.CreateNoWindow <- true
 
-        use proc = Process.Start psi
-        let stdout = proc.StandardOutput.ReadToEnd()
-        let stderr = proc.StandardError.ReadToEnd()
-        proc.WaitForExit()
+        use proc = new Process()
+        proc.StartInfo <- psi
 
-        match proc.ExitCode with
-        | 0 -> Ok(stdout.Trim())
-        | code ->
-            let msg =
-                if stderr.Trim() <> "" then stderr.Trim()
-                else $"exit {code}"
+        if not (proc.Start()) then
+            Error $"failed to start process: {psi.FileName}"
+        else
+            let stdoutTask = proc.StandardOutput.ReadToEndAsync()
+            let stderrTask = proc.StandardError.ReadToEndAsync()
 
-            Error msg
+            if not (proc.WaitForExit timeoutMs) then
+                try
+                    proc.Kill(entireProcessTree = true)
+                with _ ->
+                    ()
+
+                Error $"timeout after {timeoutMs}ms: {psi.FileName} {psi.Arguments}"
+            else
+                let stdout = stdoutTask.GetAwaiter().GetResult()
+                let stderr = stderrTask.GetAwaiter().GetResult()
+
+                match proc.ExitCode with
+                | 0 -> Ok(stdout.Trim())
+                | code ->
+                    let msg =
+                        if stderr.Trim() <> "" then stderr.Trim()
+                        else $"exit {code}"
+
+                    Error msg
 
     let run (command: string) =
         let shell, args = shellArgs command
-        ProcessStartInfo(shell, args) |> exec
+        ProcessStartInfo(shell, args) |> exec DefaultTimeoutMs
+
+    let runWithTimeout timeoutMs (command: string) =
+        let shell, args = shellArgs command
+        ProcessStartInfo(shell, args) |> exec timeoutMs
 
     let runInDir (dir: string) (command: string) =
         let shell, args = shellArgs command
-        ProcessStartInfo(shell, args, WorkingDirectory = dir) |> exec
+        ProcessStartInfo(shell, args, WorkingDirectory = dir) |> exec DefaultTimeoutMs
+
+    let runInDirWithTimeout timeoutMs (dir: string) (command: string) =
+        let shell, args = shellArgs command
+        ProcessStartInfo(shell, args, WorkingDirectory = dir) |> exec timeoutMs

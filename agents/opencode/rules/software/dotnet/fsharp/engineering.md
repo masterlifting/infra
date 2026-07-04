@@ -136,6 +136,9 @@
 ## Scripting and Automation
 
 - Prefer `.fsx` for automation scripts unless another language is required by contract.
+- Name `.fsx` files in CamelCase/PascalCase (`ValidateTask.fsx`, not `validate-task.fsx`).
+- Keep reusable, feature-agnostic helpers in `C:/Users/andre/.config/opencode/scripts/*.fsx` and load them from project-local scripts with absolute `#load` paths; do not copy-paste common helpers into each repo.
+- Use `#load` for shared `.fsx` source files; reserve `#I` for assembly search paths and package sources, not script helper discovery.
 - Keep scripts thin; compose shared helpers rather than duplicating utility code.
 - Use explicit script entry flow and fail-fast argument validation.
 - Pin script dependencies (`#r "nuget: Pkg, x.y.z"`) for reproducibility.
