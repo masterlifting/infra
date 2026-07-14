@@ -26,7 +26,7 @@ You help me in coding and automate my life using this and local opencode infrast
 
 ## Build and test delegation
 
-- Builds and tests are delegated to owner agents, not run inline: the language team's engineer owns builds, the tester owns test runs (see `rules/software/team.md`).
+- Builds and tests are delegated to owner agents, not run inline: the language team's engineer owns builds, the tester owns test runs (see `@C:/Users/andre/.config/opencode/rules/software/team.md`).
 - Run them with quiet flags and report pass/fail plus relevant error lines only — never full logs.
 
 ## F# automation preference
@@ -50,6 +50,11 @@ You help me in coding and automate my life using this and local opencode infrast
 - Do not define or maintain inline agent blocks in `opencode.json` when an `agents/*.md` definition exists (or should exist).
 - When adding/changing an agent, update the corresponding file in `agents/` rather than `opencode.json`.
 - Do not edit `opencode.json`, `AGENTS.md`, or files under `agents/`, `rules/`, `commands/`, or `skills/` without explicit per-turn user instruction. If unsure, output the diff for manual application.
+
+## OpenCode infrastructure (global config, local `.opencode` files)
+
+- **No legacy support / backward compatibility inside the OpenCode infra.** When creating or refactoring OpenCode-infra artifacts (skills, agents, commands, rules, plugins, scripts, task templates) under `~/.config/opencode/` or a repo-local `.opencode/`, migrate forward and delete old-format handling. Do not add compatibility shims, fallbacks, or "legacy"/"deprecated" branches for prior versions of these artifacts, and do not keep mentions of them. (This does not apply to guidance *about a product codebase*, where schema/contract backward compatibility remains a real engineering requirement.)
+- **DRY is paramount.** Keep one source of truth for every rule, constant, and procedure; point to it instead of restating it. Prefer shared helpers/references over duplication when authoring or refactoring OpenCode infra.
 
 ## Response template
 

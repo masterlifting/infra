@@ -1,13 +1,13 @@
 # F# Scripting
 
-Naming is two-tier: **PascalCase** `.fsx` here = reusable `#load` modules (F# module convention); **kebab-case** `.fsx` under `{skills,commands}/{name}/scripts/` = executable entry scripts.
+Name reusable modules and executable entry scripts in **PascalCase**. Keep shared `#load` modules here and workflow-specific entry scripts under `{skills,commands}/{name}/scripts/`.
 
 ```text
 kind: helper-index
 scope: scripts/*.fsx
 namespace: Common
 conventions: rules/software/dotnet/fsharp/engineering.md
-load_style: relative #load — 3 levels up from {skills,commands/opencode}/{name}/scripts/
+load_style: relative #load — 3 levels up from {skills,commands}/{name}/scripts/
 preferred_call_style: Shell.run (after open Common)
 update_policy: keep file/module/export metadata synchronized with scripts/*.fsx
 ```
@@ -55,13 +55,13 @@ result {
 
 `#load` path from skill / command entry scripts: `#load "../../../scripts/X.fsx"` (3 levels up from `<surface>/<name>/scripts/`).
 
-## Related Command/Skill Scripts
+## Related Skill Scripts
 
 These scripts are intentionally outside the `scripts/*.fsx` helper-index scope, but are useful entry points for OpenCode workflows:
 
 ```text
-commands/opencode/scripts/audit-models.fsx | model inventory and routing report for connected OpenCode providers
-skills/task/scripts/recompute-progress.fsx | recompute the TASK.md progress counter from checkbox state
-skills/task/scripts/validate.fsx           | validate TASK.md invariants (--fix to auto-repair)
-skills/youtrack/scripts/youtrack.fsx       | YouTrack REST helper used by the youtrack skill
+skills/task/scripts/RecomputeProgress.fsx | recompute the TASK.md progress counter from checkbox state
+skills/task/scripts/ValidateTask.fsx      | validate TASK.md invariants (--fix to auto-repair)
+skills/youtrack/scripts/YouTrackRest.fsx   | YouTrack REST helper used by the youtrack skill
+skills/audit-infra/scripts/ValidateInfrastructure.fsx | validate global OpenCode infrastructure structure and DRY invariants
 ```

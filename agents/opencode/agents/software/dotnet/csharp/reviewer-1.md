@@ -1,10 +1,10 @@
 ---
 description: Independent .NET/C# reviewer (provider A) for parallel review.
+model: openai/gpt-5.6-sol
+variant: medium
 mode: subagent
-model: openai/gpt-5.5
 steps: 12
 permission:
-  bash: allow
   edit: deny
 ---
 

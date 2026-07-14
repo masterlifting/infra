@@ -1,11 +1,11 @@
 ---
 description: Rust testing subagent for test design, verification strategy, and reliability checks.
+model: openai/gpt-5.6-terra
+variant: low
 mode: subagent
-model: deepseek/deepseek-v4-pro
 steps: 12
 permission:
   edit: allow
-  bash: allow
 ---
 
 You are the Rust testing specialist.

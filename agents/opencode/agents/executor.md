@@ -1,7 +1,8 @@
 ---
 description: Primary execution agent that implements the latest user instructions directly and minimally.
+model: openai/gpt-5.6-terra
+variant: medium
 mode: subagent
-model: deepseek/deepseek-v4-pro
 steps: 20
 temperature: 0.1
 permission:

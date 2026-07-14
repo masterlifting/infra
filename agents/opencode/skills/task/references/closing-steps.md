@@ -1,32 +1,32 @@
-# Closing Steps (C0–C4)
+# Closing Steps (C0–C2)
 
-Run after the last task-specific subtask, in order. Re-check from C1 onward whenever new work lands after a C-step was checked — treat the earlier check as stale. Every C-step action is Tier 1 (confirm first), except spawning the C0 review agents, which is Tier 2.
+Run after the last task-specific subtask, in order.
+Re-check from C0 onward whenever new work lands after a C-step was checked — treat the earlier check as stale.
+Every C-step action is Tier 1 (confirm first), except spawning the C0 review agents, which is Tier 2.
 
 ## C0. Pre-commit review board
 
 - Run `reviewer-1` and `reviewer-2` of the language-matching team **in parallel** on the full `git diff` before any commit.
 - Conditional members per `references/agent-gates.md`: `architect` if boundaries changed, `database/sql-reviewer` if migrations present, `devops/reviewer` if pipelines or deploy configs changed.
 - Critical/Error findings block the commit: fix and re-run the affected reviewer(s), or record an explicit user waiver in `## Decisions`.
+- Review and fix with user confirmations in the loop until the reviewers have no more questions or comments.
 
-## C1. Add or update documentation
+## C1. Clean up temporary artifacts
 
-- Update user-facing or developer docs when the change affects behavior, operations, architecture, or validation.
-- If the repo has an established changelog, release-note, or tester-instruction format, use that format instead of creating a new one.
+Before committing, remove only temporary artifacts created for the task outside the target repositories. Every removal is Tier 1 and requires explicit confirmation.
 
-## C2. Commit and publish (optional)
+**Remove:**
+
+- Working files created for this task under the session scratchpad or a temp dir (probe scripts, intermediate data, one-off outputs).
+
+**Never remove:**
+
+- Source-tree files, including debug logging and stray files in touched repositories. Clean these before C0 so review covers the committed diff.
+- The task's own `.tasks/<TASK-ID>/TASK.md`, `docs/`, and `scripts/` — these are intentional records.
+- Anything already committed as part of the change.
+- Files the user authored or edited by hand (confirm before deleting anything you didn't create).
+
+## C2. Commit and publish
 
 - Show the proposed commit message and wait for explicit confirmation before committing.
 - Push and open the repo's normal review artifact (PR/MR) after user confirmation; link it from the task file.
-
-## C3. Validate CI pipeline (optional)
-
-- Validate the relevant CI pipeline or local equivalent after a review artifact exists.
-- Infrastructure-only failures: retry and re-validate.
-- Script/code failures: investigate, fix, commit, push, and re-validate after user confirmation.
-
-## C4. Resolve review threads (optional)
-
-- Fetch unresolved review threads when the repo has a review artifact.
-- Present open threads to the user and ask which to address.
-- For each approved thread fix: read the file, explain the concern, propose the change, and wait for confirmation before implementing.
-- Done when no open threads remain or the user explicitly declines the remaining items.

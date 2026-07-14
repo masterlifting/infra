@@ -1,11 +1,11 @@
 ---
 description: Independent Rust reviewer (provider B) for parallel review.
-mode: subagent
 model: deepseek/deepseek-v4-pro
+variant: high
+mode: subagent
 steps: 12
 permission:
   edit: deny
-  bash: allow
 ---
 
 You are reviewer-2 for Rust work. Perform independent review and do not coordinate with other reviewers.

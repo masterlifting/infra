@@ -1,10 +1,10 @@
 ---
 description: Independent .NET/C# reviewer (provider B) for parallel review.
-mode: subagent
 model: deepseek/deepseek-v4-pro
+variant: high
+mode: subagent
 steps: 12
 permission:
-  bash: allow
   edit: deny
 ---
 

@@ -5,15 +5,18 @@ description: Run when the user asks to create, update, validate, or resume proje
 
 # Task Tracker
 
+## Purpose
+
 Track project `.tasks/` items with a resumable, gated workflow. Task files live at `.tasks/{TASK-ID}/TASK.md` at the repository root.
 
 ## References (load on demand)
 
 - `C:/Users/andre/.config/opencode/skills/task/references/template.md` — full task template with drop rules (load when creating a new task)
-- `C:/Users/andre/.config/opencode/skills/task/references/validation.md` — invariants checked by `scripts/validate.fsx`
-- `C:/Users/andre/.config/opencode/skills/task/references/closing-steps.md` — detailed C0–C4 procedure
+- `C:/Users/andre/.config/opencode/skills/task/references/validation.md` — invariants checked by `scripts/ValidateTask.fsx`
+- `C:/Users/andre/.config/opencode/skills/task/references/closing-steps.md` — detailed C0–C2 procedure (C2 = temp-artifact cleanup)
 - `C:/Users/andre/.config/opencode/skills/task/references/agent-gates.md` — mandatory agent matrix per phase (design gate, per-subtask review, C0 board)
 - `C:/Users/andre/.config/opencode/skills/task/references/confirmation-policy.md` — tiered confirmation: when to confirm vs. auto-proceed
+- `C:/Users/andre/.config/opencode/skills/task/references/clarification.md` — clarification procedure: gate questions from research before implementation
 
 ## Guardrails
 
@@ -24,24 +27,24 @@ Track project `.tasks/` items with a resumable, gated workflow. Task files live 
 - Keep task prose concise; expand only where brevity would hide ordering, assumptions, safety, security, financial/legal impact, or architecture tradeoffs.
 - Preserve exact code, paths, commands, URLs, error strings, API names, dates, versions, and placeholders when tightening task prose.
 
-## Quick workflow
+## Workflow
 
 1. **Ask for the task ID** if creating a new task and the user hasn't provided one.
-2. **Generate from template** — read `references/template.md`, apply its drop rules (design gate/C0 dropped for non-code tasks; C2–C4 dropped when no commit is expected), and write `.tasks/{TASK-ID}/TASK.md`. Create `docs/` by default; add `imgs/`/`scripts/` only when required.
+2. **Generate from template** — read `references/template.md`, apply its drop rules (design gate/C0 dropped for non-code tasks), and write `.tasks/{TASK-ID}/TASK.md`. Create `docs/` by default; add `imgs/`/`scripts/` only when required.
 3. **Clarify before implementing** — surface clarification questions after research; block implementation subtasks until material questions are resolved or the user explicitly accepts the uncertainty.
 4. **Enforce agent gates** — `references/agent-gates.md` is mandatory for code tasks: language-matching architect at the design gate (blocks implementation), reviewer per substantive subtask, tester for the suite, and the `reviewer-1`+`reviewer-2` board at C0 before any commit. Critical/Error findings block the gate; skips require a user waiver recorded in `## Decisions`.
 5. **Confirm per policy** — follow the tiers in `references/confirmation-policy.md`. Tier 1 always confirms; Tier 2 auto-proceeds (reads, builds/tests via owner agents, helper scripts, spawning gate agents); Tier 3 announces and proceeds.
-6. **Summaries per item** — for every completed checklist item, add an indented `Summary:` line describing the concrete work, findings, or verification. If scripts derived implementation details, save them in `.tasks/{TASK-ID}/scripts/` and reference them from `TASK.md`.
-7. **Update progress automatically** — run `dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/recompute-progress.fsx" <path-to-TASK.md>` after any checkbox change.
-8. **Validate periodically** — `dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/validate.fsx" <path-to-TASK.md>` enforces every invariant in `references/validation.md`. Pass `--fix` to auto-repair drift.
-9. **Closing steps** — after the last task-specific subtask, run C0–C4 per `references/closing-steps.md`. Treat previously checked C-steps as stale when new work changes their answer.
+6. **Summaries per item** — for every completed checklist item, add an indented nested `- Summary:` bullet describing the concrete work, findings, or verification. If scripts derived implementation details, save them in `.tasks/{TASK-ID}/scripts/` and reference them from `TASK.md`.
+7. **Update progress automatically** — the global task-progress plugin recomputes progress after OpenCode edits to `TASK.md`. After external/manual changes or when the plugin is unavailable, run `dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/RecomputeProgress.fsx" <path-to-TASK.md>`.
+8. **Validate periodically** — the task-progress plugin surfaces validation findings after OpenCode edits. Run `dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/ValidateTask.fsx" <path-to-TASK.md>` for explicit validation; pass `--fix` to auto-repair drift.
+9. **Closing steps** — after the last task-specific subtask, run C0–C2 per `references/closing-steps.md`. Treat previously checked C-steps as stale when new work changes their answer.
 10. **Verification records** — record proportionate verification for non-trivial work: command, result, and the relevant excerpt in `TASK.md`; store full raw output under `.tasks/{TASK-ID}/docs/` only when it is useful evidence.
 
 ## On Resume
 
 When loading an existing task rather than creating a new one:
 
-1. Read the task file first and surface the current `## Progress` line plus remaining incomplete subtasks.
+1. Read the task file first and surface the current status header line plus remaining incomplete subtasks.
 2. Check out the target branch(es) named in the task before implementation work, if they exist and the user has not forbidden git manipulation.
 3. If the task has a `## Continuity` section, execute or follow those steps before proceeding.
 4. Refresh `## Key Files`, `## References`, `## Decisions`, and `## Open Questions` if context changed.
@@ -57,10 +60,8 @@ When loading an existing task rather than creating a new one:
 
 ## Subtask numbering rules
 
-- Stable numbers. Append at the end when possible; never reuse a number.
-- Insertions use decimals: `3.1` between 3 and 4. Sub-phases use `####` headings with decimals.
+- Follow the canonical numbering and completion contracts in `references/validation.md` (invariants 5 and 10); do not restate or reinterpret them here.
 - Blocked notation: `- [ ] [blocked] Step - reason` (the reason is required); update when unblocked.
-- The progress counter tracks top-level `###` headings (including `C0`–`C4`); a parent with `####` children counts complete only when ALL children are complete.
 - When adding a `## Decisions` row, fill the `Date` column with today's date (`YYYY-MM-DD`) unless the decision date is known.
 - Prefer free-form notes shaped as `State`, `Evidence`, `Next`.
 
@@ -75,5 +76,10 @@ When a repo-local workflow mentions an external tracker, connector, or ticket sy
 
 ## F# scripting and helpers
 
-- Shared guidance: `scripts/README.md`; shared helpers: `scripts/*.fsx` (reuse via `#load`).
+- Shared guidance: `C:/Users/andre/.config/opencode/scripts/README.md`; shared helpers: `scripts/*.fsx` (reuse via `#load`).
 - Prefer F# scripts for non-trivial automation; place task-specific scripts under `.tasks/{TASK-ID}/scripts/`.
+
+## Output
+
+- Keep `TASK.md` concise, resumable, and synchronized with completed work, decisions, verification, blockers, and the next pending step.
+- Report progress, validation findings, and confirmation gates without reproducing the full task document in chat.

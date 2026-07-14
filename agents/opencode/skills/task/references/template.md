@@ -5,7 +5,7 @@ Load this file only when creating a new task. Fill in required fields: Brief Sum
 Drop rules at generation time:
 
 - Non-code tasks (pure analysis, docs-only): drop subtask 3 (Design gate) and closing step C0.
-- No commit/publish expected: drop C2, C3, and C4.
+- `C1` (cleanup) always applies.
 
 ```markdown
 # TASK-ID - Task Title
@@ -23,8 +23,8 @@ Drop rules at generation time:
 ## Context
 
 - Target repo(s):
-  - `./repo-name` (branch: TBD after research) - why this repo is involved
-  - `./other-repo` (branch: TBD after research) - why this repo is involved
+    - `./repo-name` (branch: TBD after research) - why this repo is involved
+    - `./other-repo` (branch: TBD after research) - why this repo is involved
 - Problem / opportunity:
 - Constraints:
 - Related links/issues:
@@ -65,11 +65,11 @@ Drop rules at generation time:
 Steps:
 
 - [ ] Investigate relevant code paths and document findings
-      Summary:
+  - Summary:
 - [ ] Define expected behavior and constraints
-      Summary:
+  - Summary:
 - [ ] Confirm approach with the user
-      Summary:
+  - Summary:
 
 ### 2. Clarify gaps before implementation
 
@@ -80,13 +80,13 @@ the user explicitly accepts the uncertainty.
 Steps:
 
 - [ ] Compile clarification questions from research, acceptance criteria, edge cases, missing inputs/outputs, or conflicting constraints
-      Summary:
+  - Summary:
 - [ ] Post the full question list in chat and capture answers in `## Decisions` or `## Open Questions`
-      Summary:
+  - Summary:
 - [ ] Mark unresolved blockers with `[blocked]` notation and set `Status: Blocked` while waiting
-      Summary:
+  - Summary:
 - [ ] Confirm with the user that implementation can proceed
-      Summary:
+  - Summary:
 
 ### 3. Design gate
 
@@ -96,9 +96,9 @@ Blocks implementation subtasks until the gate is clean or explicitly waived
 Steps:
 
 - [ ] Design gate: language-matching architect verdict recorded
-      Summary:
+  - Summary:
 - [ ] Conditional gates run (sql-reviewer for schema/migrations; security rule loaded for sensitive surfaces) or explicitly not applicable
-      Summary:
+  - Summary:
 
 ### 4. Branch setup across touched repos
 
@@ -106,82 +106,53 @@ Steps:
 - Create or switch branches only after research identifies the repos that will actually be touched.
   Steps:
 - [ ] Create or switch to a working branch in each touched repo
-      Summary:
+  - Summary:
 - [ ] Update `## Context` target repo branch entries with the selected branch names
-      Summary:
+  - Summary:
 
 ### 5. Implement and validate
 
 Steps:
 
 - [ ] Add or update implementation code
-      Summary:
+  - Summary:
 - [ ] Unit tests added or updated and passing
-      Summary:
+  - Summary:
 - [ ] Integration tests added or updated and passing (if applicable)
-      Summary:
+  - Summary:
 
 ## Closing Steps
 
-<!-- Re-check this section after each task-specific subtask. If new work lands
-     after a C-step was checked, treat that check as stale and re-run it. -->
+<!-- Re-check from C0 onward whenever new work lands after a C-step was checked
+      — treat the earlier check as stale. -->
 
 ### C0. Pre-commit review board
 
 - Run `reviewer-1` and `reviewer-2` of the language-matching team in parallel on the full diff before any commit (see `references/agent-gates.md`).
   Steps:
 - [ ] Review board verdicts recorded; Critical/Error findings fixed or waived in `## Decisions`
-      Summary:
+  - Summary:
 - [ ] Affected reviewers re-run after fixes changed the diff
-      Summary:
+  - Summary:
 
-### C1. Add or update documentation
+### C1. Clean up temporary artifacts
 
-- Update user-facing or developer docs when the change affects behavior,
-  operations, architecture, or validation.
-- If the repo has an established changelog, release-note, or tester-instruction
-  format, use that format instead of creating a new one.
-  Steps:
-- [ ] Documentation updated or explicitly not needed
-      Summary:
-- [ ] Tester or reviewer instructions captured when relevant
-      Summary:
+Before committing, remove only task-created scratchpad or temp files. See `references/closing-steps.md` for the keep/remove list. Every removal requires explicit confirmation.
 
-### C2. Commit and publish (optional)
+Steps:
+
+- [ ] Scratchpad / temp working files created for this task removed
+  - Summary:
+
+### C2. Commit and publish
 
 - Commit implementation changes after user confirmation.
 - Push and open the repo's normal review artifact after user confirmation.
   Steps:
 - [ ] Changes committed in target repo(s)
-      Summary:
+  - Summary:
 - [ ] Review artifact created and linked
-      Summary:
-
-### C3. Validate CI pipeline (optional)
-
-- Validate the relevant CI or local equivalent after a review artifact exists.
-- If failures are infrastructure-only, retry and re-validate.
-- If failures are caused by scripts or code, investigate, fix, commit, push,
-  and re-validate after user confirmation.
-  Steps:
-- [ ] Pipeline or local equivalent validated
-      Summary:
-- [ ] Script or code failures resolved (if any)
-      Summary:
-
-### C4. Resolve review threads (optional)
-
-- Fetch unresolved review threads when the repo has a review artifact.
-- Present open threads to the user and ask which to address.
-- For each approved thread fix: read the file, explain the concern, propose
-  the change, and wait for confirmation before implementing.
-  Steps:
-- [ ] Open threads reviewed with user
-      Summary:
-- [ ] Agreed fixes applied and pushed
-      Summary:
-- [ ] No open threads remaining, or the user explicitly declined the remaining items
-      Summary:
+  - Summary:
 
 ## Decisions
 

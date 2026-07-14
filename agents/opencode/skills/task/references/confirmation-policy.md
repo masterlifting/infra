@@ -4,22 +4,19 @@ Replaces the flat "confirm before each subtask" rule. Tiered by risk and reversi
 
 ## Tier 1 — Always confirm before acting
 
-- Writing/editing code in a target repo
 - Creating or switching branches
 - Committing, pushing, force-pushing
 - Creating/updating/merging PRs or MRs
-- Anything that touches a second repo
-- Any step in **Closing Steps C0–C4** (spawning the C0 review agents themselves is Tier 2; acting on their findings is Tier 1)
+- Any step in **Closing Steps C0–C2** (spawning the C0 review agents themselves is Tier 2; acting on their findings is Tier 1)
 - Destructive ops (`reset --hard`, deleting branches, `git clean`)
 - Sending data to external services (trackers, chat, wikis, secret stores)
-- Status transitions to `Complete`
 
 ## Tier 2 — Auto-proceed (no confirmation)
 
 - Build via the team's engineer agent; test via the team's tester agent
 - Read-only git (`git status`, `git diff`, `git log`, `git branch --list`)
 - File reads, grep, glob
-- F# helper scripts under `scripts/*.fsx` and `skills/*/scripts/*.fsx` (including `validate.fsx` and `recompute-progress.fsx`)
+- Automatic task-progress synchronization through the global plugin; manual F# helper invocations still follow the configured bash permission prompt
 - Updating the task file's progress counter / checkbox state for already-completed work
 - Spawning read-only agent gates (architect / reviewer-1 / reviewer-2 / sql-reviewer / tester) per `references/agent-gates.md` — the agents only read and report; applying their fixes follows Tier 1/3
 

@@ -5,9 +5,10 @@ Scope: shared operating rules for every `agents/software/**` team (engineer, arc
 ## Roles
 
 - **engineer** (primary): implements work, coordinates the team, owns the final answer and the build.
-- **architect**: design guidance for boundaries, dependencies, and tradeoffs. Does not edit code by default.
+- **architect**: protects boundaries and dependency direction, evaluates maintainability/resilience/delivery tradeoffs, makes assumptions and risks explicit, and gives actionable guidance to the engineer. Prefers simple, reversible designs and does not edit code by default.
 - **tester**: designs and implements tests; the only agent that runs tests.
 - **reviewer-1 / reviewer-2**: independent parallel reviewers on different providers. Never coordinate with each other. Never edit code.
+- **reviewer-2 provider boundary**: invoke only when the assigned context is approved for provider B. Never send secrets, personal data, private credentials, or other sensitive material.
 
 ## Delegation
 

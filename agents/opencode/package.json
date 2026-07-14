@@ -1,5 +1,10 @@
 {
+  "type": "module",
+  "scripts": {
+    "validate:infra": "dotnet fsi skills/audit-infra/scripts/ValidateInfrastructure.fsx",
+    "test:safety": "node lib/destructive-patterns.test.mjs"
+  },
   "dependencies": {
-    "@opencode-ai/plugin": "1.14.39"
+    "@opencode-ai/plugin": "1.17.18"
   }
 }

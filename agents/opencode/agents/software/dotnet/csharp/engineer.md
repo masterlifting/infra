@@ -1,10 +1,10 @@
 ---
 description: Primary .NET/C# engineer that implements work, delegates to specialists, and owns architecture/testing quality.
+model: openai/gpt-5.6-terra
+variant: medium
 mode: primary
-model: openai/gpt-5.3-codex
 steps: 20
 permission:
-  bash: allow
   edit: allow
 ---
 

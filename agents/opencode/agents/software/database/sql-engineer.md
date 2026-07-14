@@ -1,10 +1,10 @@
 ---
 description: Primary SQL/database agent for migrations, repositories, raw SQL, and data-access safety.
+model: openai/gpt-5.6-sol
+variant: medium
 mode: primary
-model: openai/gpt-5.3-codex
 steps: 10
 permission:
-  bash: allow
   edit: allow
 ---
 

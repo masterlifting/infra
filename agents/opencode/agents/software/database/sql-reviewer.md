@@ -1,10 +1,10 @@
 ---
 description: SQL/database review subagent for migration safety, query correctness, and data risk checks.
+model: openai/gpt-5.6-sol
+variant: medium
 mode: subagent
-model: openai/gpt-5.5
 steps: 12
 permission:
-  bash: allow
   edit: deny
 ---
 
