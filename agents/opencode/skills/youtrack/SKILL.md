@@ -1,6 +1,6 @@
 ---
 name: youtrack
-description: Run when the user mentions YouTrack issues/tasks, YouTrack REST, tracker sync, or asks to search/read/create/update/comment YouTrack items or check YouTrack project/user metadata. Use YouTrack REST API flows from OpenCode; do not use when no YouTrack operation is involved.
+description: Use only when a request explicitly involves YouTrack issues, searches, reads, creates, updates, comments, commands, tracker synchronization, or YouTrack project/user metadata. Do not use for generic task tracking or work that has no YouTrack operation.
 ---
 
 # YouTrack REST
@@ -12,6 +12,7 @@ Use this skill to operate YouTrack through its REST API with explicit, auditable
 ## Guardrails
 
 - Do not write tokens into repo files, task files, command history summaries, or final answers.
+- Before every external YouTrack request, state the exact operation and target plus the request data that will leave the machine, then obtain explicit confirmation for that specific request. This applies to reads such as `me`, `search`, and `get` as well as writes.
 - Require explicit user confirmation for each write operation to YouTrack (create, update, comment, command execution, delete), even if the user gave a general "go ahead" earlier.
 - Confirm destructive operations (for example deletion) before executing.
 - Treat issue visibility, comments, attachments, tokens, and user emails as sensitive.
@@ -35,12 +36,12 @@ $env:YOUTRACK_API = "<token>"
 
 1. Read `skills/youtrack/references/rest-patterns.md` before constructing requests.
 2. Use `skills/youtrack/scripts/YouTrackRest.fsx` for routine REST calls; use direct HTTP only when the helper does not cover the operation.
-3. Verify authentication with `GET /api/users/me?fields=id,login,fullName,email` before the first real operation.
+3. After request-specific confirmation, verify authentication with `GET /api/users/me?fields=id,login,fullName,email` before the first real operation.
 4. Use explicit `fields` parameters on every request so responses stay small and predictable.
 5. For issue search, URL-encode the `query` value and include `$top`/`$skip` for pagination.
 6. For writes, read the current issue first unless the task is creating a new issue.
-7. Before any write operation, restate the exact action and target issue(s) and wait for explicit confirmation.
-8. After a create/update/comment/command call, read back the changed issue or response fields and report the resulting `idReadable`, summary, and changed fields.
+7. Before every request, including reads and write verification, restate the exact operation, target issue(s), and outbound request data and wait for explicit confirmation for that request.
+8. After a create/update/comment/command call, obtain separate confirmation before reading back the changed issue; report the resulting `idReadable`, summary, and changed fields.
 
 ## Output
 

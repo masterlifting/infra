@@ -2,11 +2,11 @@
 
 Run after the last task-specific subtask, in order.
 Re-check from C0 onward whenever new work lands after a C-step was checked — treat the earlier check as stale.
-Every C-step action is Tier 1 (confirm first), except spawning the C0 review agents, which is Tier 2.
+Mutating C-step actions are Tier 1. Provider-A read-only review is Tier 2; provider-B review requires explicit approval for that specific assignment.
 
 ## C0. Pre-commit review board
 
-- Run `reviewer-1` and `reviewer-2` of the language-matching team **in parallel** on the full `git diff` before any commit.
+- Run the primary reviewer selected by `references/agent-gates.md` on the full `git diff` before any commit. Run a matching `reviewer-2` in parallel only after explicit approval for that provider-B assignment.
 - Conditional members per `references/agent-gates.md`: `architect` if boundaries changed, `database/sql-reviewer` if migrations present, `devops/reviewer` if pipelines or deploy configs changed.
 - Critical/Error findings block the commit: fix and re-run the affected reviewer(s), or record an explicit user waiver in `## Decisions`.
 - Review and fix with user confirmations in the loop until the reviewers have no more questions or comments.
@@ -28,5 +28,6 @@ Before committing, remove only temporary artifacts created for the task outside 
 
 ## C2. Commit and publish
 
+- Include C2 only when the task requires a commit or review artifact.
 - Show the proposed commit message and wait for explicit confirmation before committing.
 - Push and open the repo's normal review artifact (PR/MR) after user confirmation; link it from the task file.

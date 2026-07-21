@@ -2,7 +2,8 @@
   "type": "module",
   "scripts": {
     "validate:infra": "dotnet fsi skills/audit-infra/scripts/ValidateInfrastructure.fsx",
-    "test:safety": "node lib/destructive-patterns.test.mjs"
+    "test:safety": "node lib/destructive-patterns.test.mjs",
+    "test:task": "dotnet fsi skills/task/scripts/TaskMd.Tests.fsx && dotnet fsi skills/task/scripts/TaskWorkflow.Tests.fsx && node lib/task-progress-core.test.mjs"
   },
   "dependencies": {
     "@opencode-ai/plugin": "1.17.18"

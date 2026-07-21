@@ -10,7 +10,7 @@
 
 - Structure tests with AAA (`Arrange`, `Act`, `Assert`).
 - Keep tests deterministic, isolated, fast, and focused on one behavior.
-- Use descriptive but not to long names (for example `Method_State_ExpectedResult`).
+- Use descriptive but not too long names (for example `Method_State_ExpectedResult`).
 - Separate unit and integration tests into distinct projects/suites.
 - Favor behavior verification over implementation-detail coupling.
 

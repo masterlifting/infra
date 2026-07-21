@@ -62,6 +62,9 @@ These scripts are intentionally outside the `scripts/*.fsx` helper-index scope, 
 ```text
 skills/task/scripts/RecomputeProgress.fsx | recompute the TASK.md progress counter from checkbox state
 skills/task/scripts/ValidateTask.fsx      | validate TASK.md invariants (--fix to auto-repair)
+skills/task/scripts/CreateTask.fsx        | create a canonical task safely without overwriting an existing TASK.md
+skills/task/scripts/TaskWorkflow.Tests.fsx | integration-test task creation, validation, and stale-write safety
 skills/youtrack/scripts/YouTrackRest.fsx   | YouTrack REST helper used by the youtrack skill
 skills/audit-infra/scripts/ValidateInfrastructure.fsx | validate global OpenCode infrastructure structure and DRY invariants
+skills/office-documents/scripts/OfficeDocuments.fsx | convert simple Markdown/DOCX and CSV/JSON/XLSX files for ONLYOFFICE
 ```

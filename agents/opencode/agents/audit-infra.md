@@ -1,7 +1,7 @@
 ---
-description: Audits OpenCode configuration, commands, agents, skills, rules, scripts, and session workflow for safe infrastructure improvements.
+description: Audits broad OpenCode infrastructure including configuration, agents, commands, skills, rules, scripts, plugins, MCPs, and project .opencode files; use audit-session for active-session-only analysis.
 model: openai/gpt-5.6-sol
-variant: medium
+variant: high
 mode: subagent
 steps: 12
 permission:

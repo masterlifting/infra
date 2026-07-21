@@ -6,6 +6,8 @@ Drop rules at generation time:
 
 - Non-code tasks (pure analysis, docs-only): drop subtask 3 (Design gate) and closing step C0.
 - `C1` (cleanup) always applies.
+- Drop `C2` when the task does not require a commit or review artifact.
+- Every verification step must state an observable completion criterion and must not contradict `## Non-Goals`.
 
 ```markdown
 # TASK-ID - Task Title
@@ -25,6 +27,7 @@ Drop rules at generation time:
 - Target repo(s):
     - `./repo-name` (branch: TBD after research) - why this repo is involved
     - `./other-repo` (branch: TBD after research) - why this repo is involved
+- Task kind: code
 - Problem / opportunity:
 - Constraints:
 - Related links/issues:
@@ -114,11 +117,13 @@ Steps:
 
 Steps:
 
-- [ ] Add or update implementation code
+- [ ] Engineer-owned implementation completed
   - Summary:
-- [ ] Unit tests added or updated and passing
+- [ ] Engineer-owned build verdict recorded, or build explicitly not applicable
   - Summary:
-- [ ] Integration tests added or updated and passing (if applicable)
+- [ ] Tester inspected existing coverage, designed and implemented required tests, and recorded the test verdict; if no tester exists, implementation-agent test ownership recorded
+  - Summary:
+- [ ] Substantive reviewer verdict recorded, or change documented as non-substantive
   - Summary:
 
 ## Closing Steps
@@ -128,9 +133,11 @@ Steps:
 
 ### C0. Pre-commit review board
 
-- Run `reviewer-1` and `reviewer-2` of the language-matching team in parallel on the full diff before any commit (see `references/agent-gates.md`).
+- Run the primary reviewer selected by `references/agent-gates.md` on the full diff before any commit. Add a matching `reviewer-2` only after explicit approval for that provider-B review.
   Steps:
-- [ ] Review board verdicts recorded; Critical/Error findings fixed or waived in `## Decisions`
+- [ ] Provider-B review decision recorded; approved reviewers' verdicts recorded
+  - Summary:
+- [ ] Critical/Error findings fixed or waived in `## Decisions`
   - Summary:
 - [ ] Affected reviewers re-run after fixes changed the diff
   - Summary:
@@ -146,6 +153,8 @@ Steps:
 
 ### C2. Commit and publish
 
+<!-- Include only when this task requires a commit or review artifact. -->
+
 - Commit implementation changes after user confirmation.
 - Push and open the repo's normal review artifact after user confirmation.
   Steps:
@@ -159,6 +168,10 @@ Steps:
 | Date | Decision | Rationale |
 | ---- | -------- | --------- |
 |      |          |           |
+
+<!-- Before setting Status: Complete, record a dated "complete status confirmed"
+     decision. If incomplete lifecycle items are intentionally waived, record
+     "complete status waiver" and its rationale in the same or a separate row. -->
 
 ## Open Questions
 

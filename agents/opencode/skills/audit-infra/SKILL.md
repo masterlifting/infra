@@ -1,6 +1,6 @@
 ---
 name: audit-infra
-description: Run when the user asks to audit, compare, migrate, optimize, or improve broad OpenCode infrastructure such as AGENTS.md, opencode.json, agents, commands, skills, rules, scripts, plugins, MCPs, or project-local .opencode files. Do not use for active-session-only workflow audits; use audit-session instead.
+description: Use when auditing, comparing, migrating, optimizing, or changing broad OpenCode infrastructure including AGENTS.md, opencode.json, agents, commands, skills, rules, scripts, plugins, MCPs, and project .opencode files. Do not use for active-session-only analysis; use audit-session instead.
 ---
 
 # Audit Infrastructure
@@ -18,7 +18,7 @@ Route broad OpenCode infrastructure reviews to the existing `audit-infra` subage
 ## Workflow
 
 1. Resolve the requested infrastructure roots, comparison sources, goals, and mutation intent.
-2. Delegate the comparative audit to the `audit-infra` subagent with exact local paths and requested focus areas.
+2. Delegate the comparative audit to the `audit-infra` subagent with exact local paths and requested focus areas. If already running as `audit-infra`, execute the assigned audit instead of delegating again.
 3. If mutation was explicitly requested, apply only the smallest supported recommendations after reviewing the subagent findings.
 4. Run `npm run validate:infra` and `git diff --check` after infrastructure edits.
 

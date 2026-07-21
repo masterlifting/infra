@@ -21,7 +21,8 @@ let path =
         eprintfn "%s" message
         exit 2
 
-let lines = File.ReadAllLines path |> ResizeArray
+let original = File.ReadAllLines path
+let lines = original |> ResizeArray
 
 let x, n = computeProgress lines
 
@@ -35,7 +36,10 @@ for i in 0 .. lines.Count - 1 do
             updated <- true
 
 if updated then
-    File.WriteAllLines(path, lines)
-    printfn "updated %s -> %d/%d" path x n
+    match tryWriteAllLinesIfUnchanged path original lines with
+    | Ok () -> printfn "updated %s -> %d/%d" path x n
+    | Error message ->
+        eprintfn "%s" message
+        exit 1
 else
     printfn "no change (%d/%d)" x n

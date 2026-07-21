@@ -1,7 +1,7 @@
 ---
-description: Read-only subagent for codebase exploration.
+description: Locates symbols, files, references, and implementation context without editing; use for codebase investigation only after explicit approval to send the assigned context to provider B.
 model: deepseek/deepseek-v4-pro
-variant: medium
+variant: high
 mode: subagent
 steps: 30
 permission:

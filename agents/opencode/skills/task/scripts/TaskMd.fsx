@@ -7,6 +7,7 @@ module TaskMd
 
 open System
 open System.IO
+open System.Text
 open System.Text.RegularExpressions
 
 /// Canonical subtask-heading pattern. A heading is `### <id>.` where <id> is a
@@ -14,8 +15,48 @@ open System.Text.RegularExpressions
 /// optional letter suffix (3, 2a). Suffixes are still MATCHED here so ValidateTask.fsx
 /// can flag them — they are not allowed in tasks. This is the ONE heading definition.
 let headingRegex = Regex(@"^###\s+(?<id>C\d+|\d+\.\d+|\d+[a-z]?)\.")
+let taskIdRegex = Regex(@"^[A-Za-z]+-\d+$")
+let requiredCodeGateLabels =
+    [ "Engineer-owned implementation completed"
+      "Engineer-owned build verdict recorded"
+      "Tester inspected existing coverage"
+      "Substantive reviewer verdict recorded" ]
 
 let fenceRegex = Regex(@"^\s*(?<fence>`{3,}|~{3,})")
+
+let tryTaskId (taskId: string) =
+    let candidate = taskId.Trim()
+    if taskIdRegex.IsMatch candidate then Ok candidate
+    else Error "task ID must match <LETTERS>-<DIGITS> (for example BACK-123)"
+
+let private isReparsePoint (path: string) =
+    File.GetAttributes(path).HasFlag FileAttributes.ReparsePoint
+
+let tryResolveNewTaskPath (root: string) (taskId: string) =
+    try
+        let fullRoot = DirectoryInfo(Path.GetFullPath root).FullName
+
+        match tryTaskId taskId with
+        | Error message -> Error message
+        | Ok validTaskId ->
+            let tasksRoot = Path.Combine(fullRoot, ".tasks")
+            let taskDirectory = Path.Combine(tasksRoot, validTaskId)
+            let taskPath = Path.Combine(taskDirectory, "TASK.md")
+
+            if not (Directory.Exists fullRoot) then
+                Error $"project root does not exist: {fullRoot}"
+            elif isReparsePoint fullRoot then
+                Error "project root must not be a reparse point"
+            elif Directory.Exists tasksRoot && isReparsePoint tasksRoot then
+                Error ".tasks must not be a reparse point"
+            elif Directory.Exists taskDirectory && isReparsePoint taskDirectory then
+                Error "task directory must not be a reparse point"
+            elif File.Exists taskPath then
+                Error $"task already exists; resume it instead: {taskPath}"
+            else
+                Ok taskPath
+    with ex ->
+        Error $"invalid task creation path: {ex.Message}"
 
 let tryResolveTaskPath (root: string) (path: string) =
     try
@@ -70,6 +111,50 @@ let contentLineIndexes (lines: ResizeArray<string>) =
     |> Seq.choose id
     |> Set.ofSeq
 
+let lifecycleBounds (lines: ResizeArray<string>) =
+    let content = contentLineIndexes lines
+    let indexed = lines |> Seq.mapi (fun i line -> i, line) |> Seq.toList
+
+    let subtasks =
+        indexed
+        |> List.tryFind (fun (i, line) -> content.Contains i && line.Trim() = "## Subtasks")
+
+    subtasks
+    |> Option.map (fun (subtasksIndex, _) ->
+        let closing =
+            indexed
+            |> List.tryFind (fun (i, line) ->
+                i > subtasksIndex && content.Contains i && line.Trim() = "## Closing Steps")
+
+        let searchAfter = closing |> Option.map fst |> Option.defaultValue subtasksIndex
+        let lifecycleEnd =
+            indexed
+            |> List.tryFind (fun (i, line) ->
+                i > searchAfter && content.Contains i && Regex.IsMatch(line, @"^##\s+") && line.Trim() <> "## Closing Steps")
+            |> Option.map fst
+            |> Option.defaultValue lines.Count
+
+        subtasksIndex + 1, lifecycleEnd)
+
+let lifecycleContentLineIndexes (lines: ResizeArray<string>) =
+    let content = contentLineIndexes lines
+    match lifecycleBounds lines with
+    | Some (first, afterLast) -> content |> Set.filter (fun i -> i >= first && i < afterLast)
+    | None -> Set.empty
+
+let sectionContentLineIndexes (heading: string) (lines: ResizeArray<string>) =
+    let content = contentLineIndexes lines
+    let indexed = lines |> Seq.mapi (fun i line -> i, line) |> Seq.toList
+    match indexed |> List.tryFind (fun (i, line) -> content.Contains i && line.Trim() = heading) with
+    | None -> Set.empty
+    | Some (start, _) ->
+        let afterLast =
+            indexed
+            |> List.tryFind (fun (i, line) -> i > start && content.Contains i && Regex.IsMatch(line, @"^##\s+"))
+            |> Option.map fst
+            |> Option.defaultValue lines.Count
+        content |> Set.filter (fun i -> i > start && i < afterLast)
+
 /// The <id> of a subtask heading line (e.g. "3", "2a", "3.1", "C0"), or None.
 let tryHeadingId (line: string) : string option =
     let m = headingRegex.Match(line)
@@ -79,7 +164,7 @@ let isHeading (line: string) = headingRegex.IsMatch(line)
 
 /// All subtask headings as (line-index, line) pairs, in document order.
 let parseHeadings (lines: ResizeArray<string>) =
-    let content = contentLineIndexes lines
+    let content = lifecycleContentLineIndexes lines
 
     lines
     |> Seq.mapi (fun i l -> i, l)
@@ -92,7 +177,7 @@ let subtaskRange (content: Set<int>) (headings: (int * string) list) (lines: Res
         headings
         |> List.tryFind (fun (j, _) -> j > i)
         |> Option.map fst
-        |> Option.defaultValue lines.Count
+        |> Option.defaultValue (lifecycleBounds lines |> Option.map snd |> Option.defaultValue lines.Count)
 
     [ for k in i + 1 .. next - 1 do if content.Contains k then yield lines.[k] ]
 
@@ -103,7 +188,7 @@ let allChecked (block: string list) =
 
 /// (completed, total) subtask counts for a TASK.md.
 let computeProgress (lines: ResizeArray<string>) =
-    let content = contentLineIndexes lines
+    let content = lifecycleContentLineIndexes lines
     let headings = parseHeadings lines
     let n = headings.Length
 
@@ -113,3 +198,28 @@ let computeProgress (lines: ResizeArray<string>) =
         |> List.length
 
     x, n
+
+let tryWriteAllLinesIfUnchanged (path: string) (original: string array) (updated: ResizeArray<string>) =
+    try
+        use stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)
+        use reader = new StreamReader(stream, Encoding.UTF8, true, 1024, true)
+        let currentText = reader.ReadToEnd()
+        let current = ResizeArray<string>()
+        use lineReader = new StringReader(currentText)
+        let mutable line = lineReader.ReadLine()
+        while not (isNull line) do
+            current.Add line
+            line <- lineReader.ReadLine()
+
+        if current.ToArray() <> original then
+            Error "task file changed after it was read; refusing to overwrite newer edits"
+        else
+            stream.Position <- 0L
+            stream.SetLength 0L
+            use writer = new StreamWriter(stream, UTF8Encoding(false), 1024, true)
+            for updatedLine in updated do writer.WriteLine updatedLine
+            writer.Flush()
+            stream.Flush true
+            Ok ()
+    with :? IOException as error ->
+        Error $"task file could not be locked for a safe update: {error.Message}"

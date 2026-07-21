@@ -1,6 +1,6 @@
 ---
 name: task
-description: Run when the user asks to create, update, validate, or resume project task tracking in `.tasks/` at repo root, or asks to structure multi-step implementation work into a task file. Do not use for one-off edits that do not need task tracking.
+description: Use when creating, updating, validating, or resuming `.tasks/{TASK-ID}/TASK.md`, or when structuring multi-step implementation into resumable project task tracking. Do not use for one-off edits or informational requests that do not need a task record.
 ---
 
 # Task Tracker
@@ -13,7 +13,7 @@ Track project `.tasks/` items with a resumable, gated workflow. Task files live 
 
 - `C:/Users/andre/.config/opencode/skills/task/references/template.md` — full task template with drop rules (load when creating a new task)
 - `C:/Users/andre/.config/opencode/skills/task/references/validation.md` — invariants checked by `scripts/ValidateTask.fsx`
-- `C:/Users/andre/.config/opencode/skills/task/references/closing-steps.md` — detailed C0–C2 procedure (C2 = temp-artifact cleanup)
+- `C:/Users/andre/.config/opencode/skills/task/references/closing-steps.md` — detailed conditional C0-C2 procedure (C1 = temp-artifact cleanup)
 - `C:/Users/andre/.config/opencode/skills/task/references/agent-gates.md` — mandatory agent matrix per phase (design gate, per-subtask review, C0 board)
 - `C:/Users/andre/.config/opencode/skills/task/references/confirmation-policy.md` — tiered confirmation: when to confirm vs. auto-proceed
 - `C:/Users/andre/.config/opencode/skills/task/references/clarification.md` — clarification procedure: gate questions from research before implementation
@@ -30,14 +30,14 @@ Track project `.tasks/` items with a resumable, gated workflow. Task files live 
 ## Workflow
 
 1. **Ask for the task ID** if creating a new task and the user hasn't provided one.
-2. **Generate from template** — read `references/template.md`, apply its drop rules (design gate/C0 dropped for non-code tasks), and write `.tasks/{TASK-ID}/TASK.md`. Create `docs/` by default; add `imgs/`/`scripts/` only when required.
+2. **Generate from template** - read `references/template.md`, apply its drop rules, and create `.tasks/{TASK-ID}/TASK.md` through `scripts/CreateTask.fsx <TASK-ID> <title> [--non-code] [--no-commit]`. Never overwrite an existing task; route it to resume. Create `docs/` by default; add `imgs/`/`scripts/` only when required.
 3. **Clarify before implementing** — surface clarification questions after research; block implementation subtasks until material questions are resolved or the user explicitly accepts the uncertainty.
-4. **Enforce agent gates** — `references/agent-gates.md` is mandatory for code tasks: language-matching architect at the design gate (blocks implementation), reviewer per substantive subtask, tester for the suite, and the `reviewer-1`+`reviewer-2` board at C0 before any commit. Critical/Error findings block the gate; skips require a user waiver recorded in `## Decisions`.
-5. **Confirm per policy** — follow the tiers in `references/confirmation-policy.md`. Tier 1 always confirms; Tier 2 auto-proceeds (reads, builds/tests via owner agents, helper scripts, spawning gate agents); Tier 3 announces and proceeds.
+4. **Enforce agent gates** - `references/agent-gates.md` is mandatory for code tasks: independent design review, implementation/build verdict, test design/implementation/verdict, reviewer per substantive subtask, and C0 review before a commit. Use its fallback owners when no language team exists. Provider-B gates require explicit approval. Critical/Error findings block the gate; skips require a user waiver recorded in `## Decisions`.
+5. **Confirm per policy** - follow `references/confirmation-policy.md` as the single source of truth. Never infer approval for a Tier 1 action from a general instruction.
 6. **Summaries per item** — for every completed checklist item, add an indented nested `- Summary:` bullet describing the concrete work, findings, or verification. If scripts derived implementation details, save them in `.tasks/{TASK-ID}/scripts/` and reference them from `TASK.md`.
 7. **Update progress automatically** — the global task-progress plugin recomputes progress after OpenCode edits to `TASK.md`. After external/manual changes or when the plugin is unavailable, run `dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/RecomputeProgress.fsx" <path-to-TASK.md>`.
 8. **Validate periodically** — the task-progress plugin surfaces validation findings after OpenCode edits. Run `dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/ValidateTask.fsx" <path-to-TASK.md>` for explicit validation; pass `--fix` to auto-repair drift.
-9. **Closing steps** — after the last task-specific subtask, run C0–C2 per `references/closing-steps.md`. Treat previously checked C-steps as stale when new work changes their answer.
+9. **Closing steps** - after the last task-specific subtask, run applicable closing steps per `references/closing-steps.md`. C1 is required; C0 and C2 are conditional. Treat previously checked C-steps as stale when new work changes their answer.
 10. **Verification records** — record proportionate verification for non-trivial work: command, result, and the relevant excerpt in `TASK.md`; store full raw output under `.tasks/{TASK-ID}/docs/` only when it is useful evidence.
 
 ## On Resume
@@ -45,7 +45,7 @@ Track project `.tasks/` items with a resumable, gated workflow. Task files live 
 When loading an existing task rather than creating a new one:
 
 1. Read the task file first and surface the current status header line plus remaining incomplete subtasks.
-2. Check out the target branch(es) named in the task before implementation work, if they exist and the user has not forbidden git manipulation.
+2. Ask for explicit confirmation before creating or switching to target branches named in the task.
 3. If the task has a `## Continuity` section, execute or follow those steps before proceeding.
 4. Refresh `## Key Files`, `## References`, `## Decisions`, and `## Open Questions` if context changed.
 5. Preserve resume-critical facts in the task file: target branches, touched repos, files modified this session, verification status, open TODOs, and the next approved or pending subtask.
@@ -56,7 +56,7 @@ When loading an existing task rather than creating a new one:
 - `In Progress` — actively being worked on
 - `Blocked` — cannot proceed; reason recorded in Notes or the blocked step
 - `Paused` — intentionally halted (waiting for review, context-switching)
-- `Complete` — all subtasks done or the user declares the task finished. Add `Completed: YYYY-MM-DD` (validator auto-fixes if missing). Remind the user about remaining manual or environment-dependent steps (e2e testing, deployment verification) before closing.
+- `Complete` - ask for explicit confirmation for this status transition and record a dated `complete status confirmed` decision. Require all lifecycle items complete; if the user intentionally closes with incomplete items, record a dated `complete status waiver` and rationale. Add `Completed: YYYY-MM-DD` and remind the user about remaining manual or environment-dependent steps.
 
 ## Subtask numbering rules
 

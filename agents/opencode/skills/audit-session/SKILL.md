@@ -1,6 +1,6 @@
 ---
 name: audit-session
-description: Run when the user asks to audit, optimize, summarize, or improve the current OpenCode session workflow, tool usage, token usage, agent/skill/rule/command opportunities, hooks, plugins, MCPs, APIs, or repeatable checks. Do not use for broad OpenCode infrastructure audits; use audit-infra instead.
+description: Use only when auditing or improving the active OpenCode session, including workflow, tool calls, token use, delegation, reusable automation, and repeatable checks. Do not use for broad configuration or infrastructure review; use audit-infra instead.
 ---
 
 # Audit Session

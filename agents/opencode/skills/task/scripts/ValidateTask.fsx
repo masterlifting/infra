@@ -71,7 +71,7 @@ match statusLine with
 let subtaskHeadings = parseHeadings lines
 let x, n = computeProgress lines
 
-for requiredClosing in [ "C1"; "C2" ] do
+for requiredClosing in [ "C1" ] do
     if not (subtaskHeadings |> List.exists (fun (_, line) -> tryHeadingId line = Some requiredClosing)) then
         report (sprintf "missing required closing step %s" requiredClosing)
 
@@ -87,6 +87,44 @@ match statusLine with
                 let idx = lines |> Seq.findIndex (fun line -> line.StartsWith "**Progress:")
                 lines.[idx] <- Regex.Replace(lines.[idx], @"Progress:\s*\d+/\d+", sprintf "Progress: %d/%d" x n)
 | None -> ()
+
+let lifecycleLines = lifecycleContentLineIndexes lines
+let contextLines = sectionContentLineIndexes "## Context" lines
+let taskKinds =
+    lines
+    |> Seq.mapi (fun i line -> i, line)
+    |> Seq.choose (fun (i, line) ->
+        if not (contextLines.Contains i) then None
+        else
+            let matched = Regex.Match(line, @"^- Task kind: (?<kind>code|non-code)$")
+            if matched.Success then Some matched.Groups.["kind"].Value else None)
+    |> Seq.toList
+
+if taskKinds.Length <> 1 then report "## Context must contain exactly one '- Task kind: code|non-code' marker"
+let codeTask = taskKinds = [ "code" ]
+let hasC0 = subtaskHeadings |> List.exists (fun (_, line) -> tryHeadingId line = Some "C0")
+
+if codeTask && not hasC0 then report "code task is missing required closing step C0"
+if taskKinds = [ "non-code" ] && hasC0 then report "non-code task must not contain closing step C0"
+
+if codeTask then
+    for requiredText in requiredCodeGateLabels do
+        let found =
+            lines
+            |> Seq.mapi (fun i line -> i, line)
+            |> Seq.exists (fun (i, line) ->
+                lifecycleLines.Contains i
+                && Regex.IsMatch(line, @"^\s*-\s+\[[ xX]\]\s+" + Regex.Escape requiredText))
+        if not found then report $"code task is missing required gate checkbox: {requiredText}"
+elif taskKinds = [ "non-code" ] then
+    for codeOnlyText in requiredCodeGateLabels do
+        let found =
+            lines
+            |> Seq.mapi (fun i line -> i, line)
+            |> Seq.exists (fun (i, line) ->
+                lifecycleLines.Contains i
+                && Regex.IsMatch(line, @"^\s*-\s+\[[ xX]\]\s+" + Regex.Escape codeOnlyText))
+        if found then report $"non-code task contains code-only gate: {codeOnlyText}"
 
 // 10. Stable subtask numbering. Contract: references/validation.md, invariant 10.
 // Classify a heading's id (from the shared parser) into an orderable key:
@@ -130,15 +168,22 @@ for (i, l) in subtaskHeadings do
     | _ -> ()
 
 // 11. Summary lines must be nested bullets (`  - Summary:`), never bare
-//     indented continuation lines — markdown renders those merged into the
-//     preceding checkbox text. --fix rewrites them in place.
+//     indented continuation lines. Checked items require non-empty evidence.
 for i in 0 .. lines.Count - 1 do
     let l = lines.[i]
     let m = Regex.Match(l, @"^(?<indent>\s+)Summary:(?<rest>.*)$")
-    if m.Success then
+    if lifecycleLines.Contains i && m.Success then
         report (sprintf "line %d: bare 'Summary:' continuation line — use a nested '  - Summary:' bullet" (i+1))
         if fix then
             lines.[i] <- "  - Summary:" + m.Groups.["rest"].Value
+
+for i in 0 .. lines.Count - 1 do
+    if lifecycleLines.Contains i && Regex.IsMatch(lines.[i], @"^\s*-\s+\[[xX]\]") then
+        let hasSummary =
+            i + 1 < lines.Count
+            && Regex.IsMatch(lines.[i + 1], @"^\s{2,}-\s+Summary:\s+\S")
+        if not hasSummary then
+            report (sprintf "line %d: checked item requires a directly nested non-empty Summary" (i + 1))
 
 // 8. Blocked notation
 for i in 0 .. lines.Count - 1 do
@@ -149,6 +194,7 @@ for i in 0 .. lines.Count - 1 do
 
 // 9. Decisions table dates
 let decisionsIdx = lines |> Seq.tryFindIndex (fun l -> l.Trim() = "## Decisions")
+let decisionRows = ResizeArray<string * string * string>()
 match decisionsIdx with
 | Some di ->
     let mutable stopped = false
@@ -165,6 +211,26 @@ match decisionsIdx with
                 if not isSeparator && not isHeader && cells.Length > 0 && cells.[0] <> "" then
                     if not (Regex.IsMatch(cells.[0], @"^\d{4}-\d{2}-\d{2}$")) then
                         report (sprintf "line %d: Decisions row has invalid Date '%s' (need YYYY-MM-DD)" (k+1) cells.[0])
+                    elif cells.Length >= 2 then
+                        let rationale = if cells.Length >= 3 then cells.[2] else ""
+                        decisionRows.Add(cells.[0], cells.[1], rationale)
+| None -> ()
+
+match statusLine with
+| Some sl ->
+    let matched = statusRe.Match sl
+    if matched.Success && matched.Groups.["st"].Value = "Complete" then
+        let hasConfirmation =
+            decisionRows
+            |> Seq.exists (fun (_, decision, _) -> decision.Contains("complete status confirmed", StringComparison.OrdinalIgnoreCase))
+        let hasWaiver =
+            decisionRows
+            |> Seq.exists (fun (_, decision, rationale) ->
+                decision.Contains("complete status waiver", StringComparison.OrdinalIgnoreCase)
+                && not (String.IsNullOrWhiteSpace rationale))
+
+        if not hasConfirmation then report "Status=Complete requires a dated 'complete status confirmed' decision"
+        if x <> n && not hasWaiver then report "Status=Complete requires complete progress or a dated completion waiver with rationale"
 | None -> ()
 
 // 10/11. Target repo + branch format
@@ -195,8 +261,11 @@ if not repoFound then report "## Context > Target repo(s) lists no repos"
 
 // Write fixes
 if fix && violations.Count > 0 then
-    File.WriteAllLines(path, lines)
-    printfn "applied auto-fixes where possible"
+    match tryWriteAllLinesIfUnchanged path raw lines with
+    | Ok () -> printfn "applied auto-fixes where possible"
+    | Error message ->
+        eprintfn "%s" message
+        exit 1
 
 // Report
 if violations.Count = 0 then
