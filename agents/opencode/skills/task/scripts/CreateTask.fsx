@@ -1,6 +1,6 @@
 // Create a TASK.md from the canonical template without overwriting existing work.
-// Usage: run from the project root:
-//   dotnet fsi CreateTask.fsx <TASK-ID> <title>
+// Usage:
+//   dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/CreateTask.fsx" <TASK-ID> <title>
 
 open System
 open System.IO
@@ -65,6 +65,7 @@ let specializedBody =
         if flags.Contains "--non-code" then
             value
             |> fun text -> text.Replace("- Task kind: code", "- Task kind: non-code")
+            |> fun text -> Regex.Replace(text, @"^- Implementation plan: .*\r?\n", "", RegexOptions.Multiline)
             |> removeBlock @"^### 3\. Design gate\s*\r?\n.*?(?=^### 4\.)"
             |> removeBlock @"^### C0\. Pre-commit review board\s*\r?\n.*?(?=^### C1\.)"
             |> fun text ->

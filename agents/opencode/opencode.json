@@ -1,53 +1,65 @@
 {
-  "$schema": "https://opencode.ai/config.json",
-  "shell": "pwsh",
-  "model": "openai/gpt-5.6-terra",
-  "small_model": "openai/gpt-5.4-mini",
-  "permission": {
-    "bash": {
-      "*": "ask",
-      "git status*": "allow",
-      "git diff*": "allow",
-      "git log*": "allow",
-      "git show*": "allow",
-      "git branch": "allow",
-      "git branch --list*": "allow",
-      "git branch --show-current*": "allow",
-      "git rev-parse*": "allow",
-      "git remote -v*": "allow",
-      "git remote get-url*": "allow",
-      "git ls-files*": "allow",
-      "git -C * status*": "allow",
-      "git -C * diff*": "allow",
-      "git -C * log*": "allow",
-      "git -C * show*": "allow",
-      "git -C * branch": "allow",
-      "git -C * branch --list*": "allow",
-      "git -C * branch --show-current*": "allow",
-      "git -C * rev-parse*": "allow",
-      "git -C * remote -v*": "allow",
-      "git -C * remote get-url*": "allow",
-      "git -C * ls-files*": "allow",
-      "dotnet --info*": "allow",
-      "dotnet --version*": "allow",
-      "npm run validate:infra": "allow",
-      "dotnet fsi *": "ask",
-      "git commit*": "ask",
-      "git push*": "ask",
-      "git reset --hard*": "deny",
-      "git clean -fd*": "deny",
-      "git clean -*": "deny",
-      "git checkout -- *": "deny",
-      "git restore *": "deny",
-      "git -C * restore *": "deny",
-      "rm -rf *": "deny",
-      "Remove-Item * -Recurse -Force*": "deny",
-      "Remove-Item -Recurse -Force *": "deny",
-      "Remove-Item -LiteralPath * -Recurse -Force*": "deny"
+    "$schema": "https://opencode.ai/config.json",
+    "shell": "pwsh",
+    "model": "openai/gpt-5.6-terra",
+    "small_model": "deepseek/deepseek-v4-pro",
+    "permission": {
+        "bash": {
+            "*": "ask",
+            "dotnet fsi *": "ask",
+            "dotnet fsi \"C:/Users/andre/.config/opencode/skills/task/scripts/*": "allow",
+            "dotnet fsi \"C:/Users/andre/.config/opencode/skills/office-documents/scripts/*": "allow",
+            "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit-infra/scripts/*": "allow",
+            "git branch --show-current": "allow",
+            "git status *": "allow",
+            "git diff *": "allow",
+            "git log *": "allow",
+            "git show *": "allow",
+            "git remote -v": "allow",
+            "git rev-parse *": "allow",
+            "git ls-files *": "allow",
+            "git ls-tree *": "allow",
+            "git blame *": "allow",
+            "git tag -l *": "allow",
+            "dotnet --info*": "allow",
+            "dotnet --version*": "allow",
+            "npm run validate:infra": "allow",
+            "git commit*": "ask",
+            "git push*": "ask",
+            "git reset --hard*": "deny",
+            "git clean -fd*": "deny",
+            "git clean -*": "deny",
+            "git checkout -- *": "deny",
+            "git restore *": "deny",
+            "git -C * restore *": "deny",
+            "rm -rf *": "deny",
+            "Remove-Item * -Recurse -Force*": "deny",
+            "Remove-Item -Recurse -Force *": "deny",
+            "Remove-Item -LiteralPath * -Recurse -Force*": "deny"
+        },
+        "edit": "ask"
     },
-    "edit": "ask"
-  },
-  "plugin": [
-    "@slkiser/opencode-quota@3.11.1"
-  ]
+    "mcp": {
+        "telegram": {
+            "type": "local",
+            "enabled": true,
+            "command": ["uv", "--directory", "C:/Users/andre/.config/opencode/mcp/telegram", "run", "main.py"],
+            "environment": {
+                "TELEGRAM_API_ID": "{env:TELEGRAM_API_ID}",
+                "TELEGRAM_API_HASH": "{env:TELEGRAM_API_HASH}",
+                "TELEGRAM_SESSION_STRING": "{env:TELEGRAM_SESSION_STRING}"
+            }
+        },
+        "github": {
+            "type": "local",
+            "enabled": true,
+            "command": [
+                "C:/Users/andre/AppData/Local/Programs/github-mcp-server/github-mcp-server.exe",
+                "stdio",
+                "--toolsets=context,repos,pull_requests"
+            ],
+            "timeout": 30000
+        }
+    },
+    "plugin": ["@slkiser/opencode-quota@3.11.1"]
 }

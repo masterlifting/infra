@@ -1,5 +1,5 @@
 ---
-description: Reviews substantive Rust changes independently for correctness, safety, ownership boundaries, security, and test gaps; use alone or with reviewer-2 after provider-B approval.
+description: Reviews substantive Rust changes independently for correctness, safety, ownership boundaries, security, and test gaps; use alone or with reviewer-2.
 model: openai/gpt-5.6-sol
 variant: medium
 mode: subagent

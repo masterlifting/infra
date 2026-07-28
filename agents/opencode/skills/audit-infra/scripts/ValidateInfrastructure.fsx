@@ -277,6 +277,87 @@ if File.Exists scriptsReadme then
     for stale in Set.difference indexedHelpers actualHelpers do
         error "helper-index" "scripts/README.md" $"Stale helper index row for scripts/{stale}"
 
+    let indexedRows =
+        File.ReadAllLines scriptsReadme
+        |> Array.choose (fun line ->
+            let m = Regex.Match(line, @"^scripts/(?<file>[^ |]+\.fsx)\s+\|\s*(?<modules>[^|]+)\s*\|\s*(?<exports>[^|]+)\s*\|")
+            if m.Success then
+                let file = m.Groups.["file"].Value
+                let modules =
+                    m.Groups.["modules"].Value.Trim().Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    |> Array.map (fun s -> s.Trim())
+                    |> Array.toList
+                let exports =
+                    m.Groups.["exports"].Value.Trim().Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    |> Array.collect (fun group ->
+                        let parts = group.Trim().Split(',', StringSplitOptions.RemoveEmptyEntries) |> Array.map (fun s -> s.Trim())
+                        if parts.Length > 0 then
+                            let moduleName =
+                                parts
+                                |> Array.tryFind (fun export -> export.Contains '.')
+                                |> Option.map (fun export -> export.Substring(0, export.IndexOf '.'))
+                                |> Option.orElseWith (fun () ->
+                                    match modules with
+                                    | [ moduleName ] -> Some moduleName
+                                    | _ -> None)
+
+                            parts
+                            |> Array.map (fun export ->
+                                if export.Contains '.' then export
+                                else moduleName |> Option.map (fun name -> name + "." + export) |> Option.defaultValue export)
+                        else
+                            parts)
+                    |> Set.ofArray
+                Some(file, modules, exports)
+            else
+                None)
+
+    for file, declaredModules, declaredExports in indexedRows do
+        let fsxPath = Path.Combine(root, "scripts", file)
+        if File.Exists fsxPath then
+            let content = File.ReadAllText fsxPath
+            let actualModules =
+                Regex.Matches(content, @"^module\s+(\w+)\s*=", RegexOptions.Multiline)
+                |> Seq.cast<Match>
+                |> Seq.map (fun m -> m.Groups.[1].Value)
+                |> Set.ofSeq
+
+            for m in declaredModules do
+                if not (actualModules.Contains m) then
+                    error "helper-index" "scripts/README.md" $"Module '{m}' declared in index for scripts/{file} but not found in file"
+
+            for m in actualModules do
+                if not (List.contains m declaredModules) then
+                    error "helper-index" "scripts/README.md" $"Module '{m}' found in scripts/{file} but not listed in index"
+
+            let actualExports =
+                let publicBinding = Regex(@"^    let\s+(?!private\b)(?:\(\|(?<active>\w+)\||(?<name>\w+))")
+                let moduleDeclaration = Regex(@"^module\s+(?<name>\w+)\s*=")
+                let mutable currentModule = None
+
+                File.ReadAllLines fsxPath
+                |> Seq.choose (fun line ->
+                    let moduleMatch = moduleDeclaration.Match line
+                    if moduleMatch.Success then
+                        currentModule <- Some moduleMatch.Groups.["name"].Value
+                        None
+                    else
+                        let bindingMatch = publicBinding.Match line
+                        match currentModule, bindingMatch.Success with
+                        | Some moduleName, true ->
+                            let exportName =
+                                if bindingMatch.Groups.["active"].Success then bindingMatch.Groups.["active"].Value
+                                else bindingMatch.Groups.["name"].Value
+                            Some(moduleName + "." + exportName)
+                        | _ -> None)
+                |> Set.ofSeq
+
+            for export in Set.difference declaredExports actualExports do
+                error "helper-index" "scripts/README.md" $"Export '{export}' declared in index for scripts/{file} but not found in file"
+
+            for export in Set.difference actualExports declaredExports do
+                error "helper-index" "scripts/README.md" $"Public export '{export}' in scripts/{file} is missing from the helper index"
+
 let markdownFiles =
     seq {
         for name in [ "AGENTS.md"; "README.md" ] do

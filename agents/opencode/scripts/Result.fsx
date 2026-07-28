@@ -98,9 +98,3 @@ module ResultAsync =
                 | Ok() -> return Error error
                 | Error errF -> return Error errF
         }
-
-    [<System.Obsolete("Use validate; apply is a backwards-compatible alias with validation-checkpoint semantics.")>]
-    let apply f workflow = validate f workflow
-
-    [<System.Obsolete("Use validateAsync; applyAsync is a backwards-compatible alias with validation-checkpoint semantics.")>]
-    let applyAsync f workflow = validateAsync f workflow

@@ -1,6 +1,6 @@
 // Validate a TASK.md against the invariants in references/validation.md.
 // Usage:
-//   Run from the project root: dotnet fsi ValidateTask.fsx <path-to-TASK.md> [--fix]
+//   dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/ValidateTask.fsx" <path-to-TASK.md> [--fix]
 // Exit 0 = clean; 1 = violations found; 2 = bad invocation.
 
 open System
@@ -104,10 +104,126 @@ if taskKinds.Length <> 1 then report "## Context must contain exactly one '- Tas
 let codeTask = taskKinds = [ "code" ]
 let hasC0 = subtaskHeadings |> List.exists (fun (_, line) -> tryHeadingId line = Some "C0")
 
+let implementationPlans =
+    lines
+    |> Seq.mapi (fun i line -> i, line)
+    |> Seq.choose (fun (i, line) ->
+        if not (contextLines.Contains i) || not (line.StartsWith implementationPlanPrefix) then None
+        else Some(line.Substring(implementationPlanPrefix.Length)))
+    |> Seq.toList
+
+let designGate =
+    subtaskHeadings
+    |> List.tryFind (fun (_, line) -> line.Trim() = "### 3. Design gate")
+
+let designGateBlock =
+    designGate
+    |> Option.map (fun (index, _) -> subtaskRange lifecycleLines subtaskHeadings lines index)
+
+let designGateComplete =
+    designGateBlock
+    |> Option.map (fun block ->
+        requiredDesignGateLabels |> List.forall (fun label -> hasExactCheckedCheckbox label block)
+        && allChecked block)
+    |> Option.defaultValue false
+
 if codeTask && not hasC0 then report "code task is missing required closing step C0"
+if codeTask && designGate.IsNone then report "code task is missing required subtask '### 3. Design gate'"
 if taskKinds = [ "non-code" ] && hasC0 then report "non-code task must not contain closing step C0"
 
 if codeTask then
+    match designGateBlock with
+    | Some block ->
+        for requiredLabel in requiredDesignGateLabels do
+            if not (hasExactCheckbox requiredLabel block) then
+                report $"design gate is missing required checkbox: {requiredLabel}"
+    | None -> ()
+
+    if not designGateComplete then
+        for (index, line) in subtaskHeadings do
+            match tryNumberedSubtaskId line with
+            | Some (_, Some root) when root >= 5 ->
+                let block = subtaskRange lifecycleLines subtaskHeadings lines index
+                if block |> List.exists checkedCheckboxRegex.IsMatch then
+                    report "implementation and validation work rooted at subtask 5 or later cannot be checked before the design gate completes"
+            | _ -> ()
+
+    let decimalAdaptiveHeadings =
+        subtaskHeadings
+        |> List.choose (fun (index, line) ->
+            match tryNumberedHeading line with
+            | Some (id, title, _) when id.Contains "." && (title.StartsWith("Implement: ") || title.StartsWith("Validate: ")) ->
+                Some index
+            | _ -> None)
+
+    if designGateComplete then
+        for index in decimalAdaptiveHeadings do
+            report $"line {index + 1}: adaptive Implement/Validate subtasks must use top-level integer IDs"
+
+    match implementationPlans with
+    | [ plan ] when validImplementationPlans.Contains plan ->
+        if designGateComplete then
+            let genericPlaceholderPresent =
+                lifecycleLines
+                |> Seq.exists (fun i -> lines.[i].Trim() = genericImplementationPlaceholder)
+
+            match plan with
+            | "TBD" -> report "completed design gate requires an implementation plan of non-complex or complex"
+            | "non-complex" ->
+                let nonComplexSubtask =
+                    subtaskHeadings
+                    |> List.tryFind (fun (_, line) -> line.Trim() = genericImplementationHeading)
+
+                match nonComplexSubtask with
+                | None -> report "non-complex implementation plan requires '### 5. Implement and validate'"
+                | Some (index, _) ->
+                    let block = subtaskRange lifecycleLines subtaskHeadings lines index
+                    for gateLabel in requiredCodeGateLabels do
+                        if not (hasGateCheckbox gateLabel block) then
+                            report $"non-complex implementation subtask is missing required gate checkbox: {gateLabel}"
+
+                if genericPlaceholderPresent then
+                    report "non-complex implementation plan must remove the generic implementation placeholder"
+            | "complex" ->
+                let taskSpecificSubtasks =
+                    subtaskHeadings
+                    |> List.choose (fun (index, line) ->
+                        match tryNumberedHeading line with
+                        | Some (id, title, Some root) when root >= 5 && not (id.Contains ".") ->
+                            Some(index, id, title)
+                        | _ -> None)
+
+                let implementationSubtasks =
+                    taskSpecificSubtasks
+                    |> List.filter (fun (_, _, title) -> title.StartsWith("Implement: "))
+                let validationSubtasks =
+                    taskSpecificSubtasks
+                    |> List.filter (fun (_, _, title) -> title.StartsWith("Validate: "))
+
+                if not (implementationSubtasks |> List.exists (fun (_, id, _) -> id = "5")) then
+                    report "complex implementation plan requires a task-specific '### 5. Implement: ...' subtask"
+                if validationSubtasks.IsEmpty then
+                    report "complex implementation plan requires a task-specific '### <n>. Validate: ...' subtask"
+                if subtaskHeadings |> List.exists (fun (_, line) -> line.Trim() = genericImplementationHeading) then
+                    report "complex implementation plan must remove '### 5. Implement and validate'"
+                if genericPlaceholderPresent then
+                    report "complex implementation plan must remove the generic implementation placeholder"
+
+                for (index, _, _) in implementationSubtasks do
+                    let block = subtaskRange lifecycleLines subtaskHeadings lines index
+                    for gateLabel in implementationGateLabels do
+                        if not (hasGateCheckbox gateLabel block) then
+                            report $"complex Implement subtask is missing required gate checkbox: {gateLabel}"
+
+                for (index, _, _) in validationSubtasks do
+                    let block = subtaskRange lifecycleLines subtaskHeadings lines index
+                    for gateLabel in validationGateLabels do
+                        if not (hasGateCheckbox gateLabel block) then
+                            report $"complex Validate subtask is missing required gate checkbox: {gateLabel}"
+            | _ -> ()
+    | _ ->
+        report "code task ## Context must contain exactly one valid '- Implementation plan: TBD|non-complex|complex' marker"
+
     for requiredText in requiredCodeGateLabels do
         let found =
             lines
@@ -117,6 +233,8 @@ if codeTask then
                 && Regex.IsMatch(line, @"^\s*-\s+\[[ xX]\]\s+" + Regex.Escape requiredText))
         if not found then report $"code task is missing required gate checkbox: {requiredText}"
 elif taskKinds = [ "non-code" ] then
+    if not implementationPlans.IsEmpty then
+        report "non-code task must not contain an implementation plan marker"
     for codeOnlyText in requiredCodeGateLabels do
         let found =
             lines
@@ -131,21 +249,31 @@ elif taskKinds = [ "non-code" ] then
 // Choice1Of2 (number, suffixRank, decimal) for numbered subtasks, Choice2Of2 n for C-steps.
 let suffixRank (s: string) = if s = "" then 0 else int s.[0] - int 'a' + 1
 let parseSubtaskId (line: string) =
-    tryHeadingId line
-    |> Option.map (fun id ->
-        if id.StartsWith "C" then Choice2Of2(int (id.Substring 1))
-        elif id.Contains "." then
-            let p = id.Split '.'
-            Choice1Of2(int p.[0], 0, int p.[1])
-        else
-            let mm = Regex.Match(id, @"^(?<n>\d+)(?<s>[a-z]?)$")
-            Choice1Of2(int mm.Groups.["n"].Value, suffixRank mm.Groups.["s"].Value, 0))
+    match tryHeadingId line with
+    | None -> None
+    | Some id when id.StartsWith "C" ->
+        tryParseSubtaskNumber (id.Substring 1)
+        |> Option.map (Choice2Of2 >> Ok)
+        |> Option.defaultValue (Error id)
+        |> Some
+    | Some id when id.Contains "." ->
+        let parts = id.Split '.'
+        match tryParseSubtaskNumber parts.[0], tryParseSubtaskNumber parts.[1] with
+        | Some root, Some decimal -> Some(Ok(Choice1Of2(root, 0, decimal)))
+        | _ -> Some(Error id)
+    | Some id ->
+        let matched = Regex.Match(id, @"^(?<n>\d+)(?<s>[a-z]?)$")
+        match tryParseSubtaskNumber matched.Groups.["n"].Value with
+        | Some number -> Some(Ok(Choice1Of2(number, suffixRank matched.Groups.["s"].Value, 0)))
+        | None -> Some(Error id)
 let mutable lastNumKey : (int * int * int) option = None
 let mutable lastClosing : int option = None
 for (i, l) in subtaskHeadings do
     match parseSubtaskId l with
     | None -> ()
-    | Some (Choice1Of2 key) ->
+    | Some (Error id) ->
+        report (sprintf "line %d: subtask id '%s' exceeds the supported numeric range" (i + 1) id)
+    | Some (Ok (Choice1Of2 key)) ->
         if lastClosing.IsSome then
             report (sprintf "line %d: numbered subtask after a C-step — closing steps must be last" (i+1))
         match lastNumKey with
@@ -153,7 +281,7 @@ for (i, l) in subtaskHeadings do
             report (sprintf "line %d: subtask numbering not ascending (numbers must never be reused)" (i+1))
         | _ -> ()
         lastNumKey <- Some key
-    | Some (Choice2Of2 c) ->
+    | Some (Ok (Choice2Of2 c)) ->
         match lastClosing with
         | Some prev when c <= prev ->
             report (sprintf "line %d: C-step numbering not ascending" (i+1))

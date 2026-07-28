@@ -1,5 +1,5 @@
 ---
-description: Second independent .NET/C# reviewer for failure paths, concurrency, operational risk, and test reliability; use only with reviewer-1 after explicit provider-B approval.
+description: Second independent .NET/C# reviewer for failure paths, concurrency, operational risk, and test reliability; use with reviewer-1.
 model: deepseek/deepseek-v4-pro
 variant: high
 mode: subagent

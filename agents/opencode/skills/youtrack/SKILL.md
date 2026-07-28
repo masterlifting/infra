@@ -53,10 +53,10 @@ $env:YOUTRACK_API = "<token>"
 Run through `dotnet fsi`:
 
 ```powershell
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- --help
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- me
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- search "for: me #Unresolved" --top 20
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- get PROJ-123
+dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- --help
+dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- me
+dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- search "for: me #Unresolved" --top 20
+dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- get PROJ-123
 ```
 
 The helper supports `YOUTRACK_BASE_URL` override, defaults the base URL when unset, reads `YOUTRACK_API`, prints JSON, and keeps token handling out of repo files.

@@ -3,10 +3,9 @@ description: Audits broad OpenCode infrastructure including configuration, agent
 model: openai/gpt-5.6-sol
 variant: high
 mode: subagent
-steps: 12
+steps: 40
 permission:
   edit: ask
-  bash: ask
   webfetch: ask
 ---
 

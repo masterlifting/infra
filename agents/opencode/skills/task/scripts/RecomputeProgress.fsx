@@ -1,6 +1,6 @@
 // Recompute Progress: X/N from checkbox state. Idempotent; safe to run on every edit.
 // Usage:
-//   Run from the project root: dotnet fsi RecomputeProgress.fsx <path-to-TASK.md>
+//   dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/RecomputeProgress.fsx" <path-to-TASK.md>
 
 open System
 open System.IO

@@ -7,7 +7,7 @@ kind: helper-index
 scope: scripts/*.fsx
 namespace: Common
 conventions: rules/software/dotnet/fsharp/engineering.md
-load_style: relative #load — 3 levels up from {skills,commands}/{name}/scripts/
+load_style: absolute #load from C:/Users/andre/.config/opencode/scripts/
 preferred_call_style: Shell.run (after open Common)
 update_policy: keep file/module/export metadata synchronized with scripts/*.fsx
 ```
@@ -26,12 +26,12 @@ update_policy: keep file/module/export metadata synchronized with scripts/*.fsx
 format: file | modules | key_exports | purpose
 scripts/ActivePatterns.fsx     | AP          | IsString, IsInt, IsFloat, IsGuid, IsTimeSpan, IsDateOnly, IsTimeOnly, IsDateTime, IsEmail, IsLettersOrNumbers | active patterns for parsing and validation
 scripts/Async.fsx              | Async       | bind, map | async combinators
-scripts/Cli.fsx                | Args, Shell | Args.ofFsi, Args.get, Args.getOrDefault, Args.getList, Args.has; Shell.run, Shell.runInDir | CLI argument parsing and OS-aware shell execution
+scripts/Cli.fsx                | Args, Shell | Args.ofFsi, Args.get, Args.getOrDefault, Args.getList, Args.has; Shell.run, Shell.runWithTimeout, Shell.runInDir, Shell.runInDirWithTimeout | CLI argument parsing and OS-aware shell execution
 scripts/ComputationExpressions.fsx | CE      | result, asyncResult | result and async-result computation expression builders
 scripts/Exception.fsx          | Exception   | toMessage | exception-to-message normalization
 scripts/Map.fsx                | Map         | combine, removeKeys, reverse | map helpers
 scripts/Option.fsx             | Option      | toResult, min, max | option helpers
-scripts/Result.fsx             | Result, ResultAsync | Result.choose, Result.unzip; ResultAsync.wrap, bind, bindAsync, map, mapAsync, mapError, mapErrorAsync, defaultWith, apply, applyAsync | result and async-result helpers
+scripts/Result.fsx             | Result, ResultAsync | Result.choose, Result.unzip; ResultAsync.wrap, bind, bindAsync, map, mapAsync, mapError, mapErrorAsync, defaultWith, validate, validateAsync | result and async-result helpers
 scripts/Seq.fsx                | Seq         | unzip | sequence helpers
 scripts/String.fsx             | String      | fromTimeSpan, fromDateTime, addLines, toDefault, has, hasSeq | string/date-time helpers
 scripts/Threading.fsx          | Threading   | canceled, notCanceled | cancellation token helpers
@@ -53,7 +53,7 @@ result {
 }
 ```
 
-`#load` path from skill / command entry scripts: `#load "../../../scripts/X.fsx"` (3 levels up from `<surface>/<name>/scripts/`).
+`#load` path from skill / command entry scripts: `#load "C:/Users/andre/.config/opencode/scripts/X.fsx"`.
 
 ## Related Skill Scripts
 

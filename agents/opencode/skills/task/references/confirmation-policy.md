@@ -7,9 +7,7 @@ Replaces the flat "confirm before each subtask" rule. Tiered by risk and reversi
 - Creating or switching branches
 - Committing, pushing, force-pushing
 - Creating/updating/merging PRs or MRs
-- Invoking any provider-B agent, including `reviewer-2`, for the specific assigned context
 - Changing task `Status` to `Complete`
-- Any mutating step in **Closing Steps C0-C2**
 - Destructive ops (`reset --hard`, deleting branches, `git clean`)
 - Sending data to external services (trackers, chat, wikis, secret stores)
 
@@ -18,10 +16,10 @@ Replaces the flat "confirm before each subtask" rule. Tiered by risk and reversi
 - Build via the team's engineer agent; test via the team's tester agent
 - Read-only git (`git status`, `git diff`, `git log`, `git branch --list`)
 - File reads, grep, glob
-- Automatic task-progress synchronization through the global plugin; manual F# helper invocations still follow the configured bash permission prompt
+- Automatic task-progress synchronization through the global plugin; manual F# helper invocations follow the configured bash permission prompt (auto-allowed for task, office-documents, and audit-infra scripts)
 - Updating the task file's progress counter / checkbox state for already-completed work
-- Spawning provider-A architect and reviewer gates per `references/agent-gates.md`
-- Assigning in-scope implementation, build, and test work to the owner agents; provider-B invocation remains Tier 1
+- Spawning architect and reviewer gates per `references/agent-gates.md`
+- Assigning in-scope implementation, build, and test work to the owner agents
 
 ## Tier 3 — Brief surface, no wait
 

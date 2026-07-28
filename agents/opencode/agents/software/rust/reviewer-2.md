@@ -1,5 +1,5 @@
 ---
-description: Second independent Rust reviewer for ownership, concurrency, unsafe-code, operational, and test-reliability risks; use only with reviewer-1 after explicit provider-B approval.
+description: Second independent Rust reviewer for ownership, concurrency, unsafe-code, operational, and test-reliability risks; use with reviewer-1.
 model: deepseek/deepseek-v4-pro
 variant: high
 mode: subagent

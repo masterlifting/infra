@@ -21,6 +21,7 @@ Single source for naming, layout, and verification conventions in this config re
 agents/                 # File-based agent definitions; no inline opencode.json agents
 commands/               # Slash-command prompts and command-local scripts
 lib/                    # Shared JavaScript logic and deterministic tests
+mcp/                    # Ignored machine-local MCP source checkouts registered in opencode.json
 plugins/                # Auto-loaded OpenCode hooks; no opencode.json entry needed
 rules/                  # Lazy-loaded domain rules and policies
 scripts/                # Reusable F# helper modules plus README index

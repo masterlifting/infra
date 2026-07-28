@@ -44,9 +44,9 @@ Content-Type: application/json
 Prefer the bundled F# helper for routine calls:
 
 ```powershell
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- me
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- search "for: me #Unresolved" --top 20
-dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- request GET "/users/me?fields=id,login,fullName,email"
+dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- me
+dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- search "for: me #Unresolved" --top 20
+dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- request GET "/users/me?fields=id,login,fullName,email"
 ```
 
 Use this direct PowerShell pattern only when the helper does not cover the operation:

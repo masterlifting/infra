@@ -12,7 +12,7 @@ Create and extract simple local Office documents that open in ONLYOFFICE without
 ## Guardrails
 
 - Keep all document content local unless the user explicitly approves an external transfer.
-- Before running the converter when its pinned NuGet packages may need restoration, explain that `dotnet fsi` can contact configured NuGet feeds and write to the global package cache, then obtain explicit confirmation for that specific restore/network action.
+- The converter is pre-allowed by the configured bash permission rules. Its pinned NuGet packages may contact configured feeds and write to the global package cache during restoration.
 - Treat conversion as content-oriented and text-based: preserve headings, paragraphs, inline bold/code when creating DOCX, and flat lists represented by visible markers, not exact layout or native Word list semantics.
 - Treat spreadsheet values as text. CSV input requires a header row; JSON input requires an array of objects; XLSX export uses the first used row as headers.
 - Do not claim support for macros, tracked changes, embedded media, charts, pivot tables, or formula recalculation.
@@ -22,7 +22,7 @@ Create and extract simple local Office documents that open in ONLYOFFICE without
 
 1. Determine the conversion and paths. Supported operations are `md-to-docx`, `docx-to-md`, `csv-to-xlsx`, `json-to-xlsx`, `xlsx-to-csv`, and `xlsx-to-json`.
 2. For JSON input, require an array of objects. Object keys become spreadsheet headers.
-3. Confirm that the output does not already exist. If package restoration may be needed, obtain the confirmation required above, then run:
+3. Confirm that the output does not already exist, then run:
 
    ```powershell
    dotnet fsi "C:/Users/andre/.config/opencode/skills/office-documents/scripts/OfficeDocuments.fsx" <operation> --input "<input>" --output "<output>" [--sheet "<sheet>"]

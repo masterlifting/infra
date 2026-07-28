@@ -6,7 +6,6 @@ mode: subagent
 steps: 8
 permission:
   edit: deny
-  bash: ask
   webfetch: deny
 ---
 

@@ -28,6 +28,7 @@ Drop rules at generation time:
     - `./repo-name` (branch: TBD after research) - why this repo is involved
     - `./other-repo` (branch: TBD after research) - why this repo is involved
 - Task kind: code
+- Implementation plan: TBD
 - Problem / opportunity:
 - Constraints:
 - Related links/issues:
@@ -71,7 +72,7 @@ Steps:
   - Summary:
 - [ ] Define expected behavior and constraints
   - Summary:
-- [ ] Confirm approach with the user
+- [ ] Draft task-specific delivery and validation work; for code tasks, classify implementation as complex or non-complex
   - Summary:
 
 ### 2. Clarify gaps before implementation
@@ -86,9 +87,9 @@ Steps:
   - Summary:
 - [ ] Post the full question list in chat and capture answers in `## Decisions` or `## Open Questions`
   - Summary:
-- [ ] Mark unresolved blockers with `[blocked]` notation and set `Status: Blocked` while waiting
+- [ ] Refine the draft delivery and validation work from resolved questions and accepted uncertainties
   - Summary:
-- [ ] Confirm with the user that implementation can proceed
+- [ ] Mark unresolved blockers with `[blocked]` notation and set `Status: Blocked` while waiting
   - Summary:
 
 ### 3. Design gate
@@ -101,6 +102,8 @@ Steps:
 - [ ] Design gate: language-matching architect verdict recorded
   - Summary:
 - [ ] Conditional gates run (sql-reviewer for schema/migrations; security rule loaded for sensitive surfaces) or explicitly not applicable
+  - Summary:
+- [ ] Set `Implementation plan` to `non-complex` or `complex`; approve the final task-specific structure with no generic planning placeholders
   - Summary:
 
 ### 4. Branch setup across touched repos
@@ -115,7 +118,28 @@ Steps:
 
 ### 5. Implement and validate
 
+During subtasks 1-3, refine this implementation area before the design gate completes:
+
+- Complex task: set `Implementation plan: complex` and replace this generic
+  subtask with numbered `### 5. Implement: <slice>` and
+  `### <n>. Validate: <scope>` subtasks. Add further numbered task-specific
+  subtasks where needed. Use this form when one combined cycle would hide
+  independent slices, ordering, ownership, or materially different components
+  or repositories.
+- Non-complex task: retain subtask 5 and add concrete task-specific
+  implementation and validation steps with observable completion criteria;
+  set `Implementation plan: non-complex` and remove the placeholder comment.
+- Preserve the applicable implementation, build, test, and review gate
+  checkboxes below in the resulting structure. For a complex task, put the
+  implementation/build/review gates in each applicable implementation subtask
+  and the tester gate in the applicable validation subtask or subtasks.
+- If this structure changes after the design gate was approved, reopen subtask
+  3 and re-run that gate. On resume, preserve an already-started subtask 5 and
+  its evidence; rename/refine it and append new IDs instead of deleting history.
+
 Steps:
+
+<!-- Add task-specific implementation and validation steps here for a non-complex task. -->
 
 - [ ] Engineer-owned implementation completed
   - Summary:
@@ -133,9 +157,9 @@ Steps:
 
 ### C0. Pre-commit review board
 
-- Run the primary reviewer selected by `references/agent-gates.md` on the full diff before any commit. Add a matching `reviewer-2` only after explicit approval for that provider-B review.
+- Run the primary reviewer selected by `references/agent-gates.md` on the full diff before any commit. Add a matching `reviewer-2`.
   Steps:
-- [ ] Provider-B review decision recorded; approved reviewers' verdicts recorded
+- [ ] Approved reviewers' verdicts recorded
   - Summary:
 - [ ] Critical/Error findings fixed or waived in `## Decisions`
   - Summary:

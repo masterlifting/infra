@@ -45,4 +45,33 @@ match tryTaskId "../BACK-123" with
 | Error _ -> ()
 | Ok value -> failwithf "unsafe task ID unexpectedly accepted: %s" value
 
+let fenceLines =
+    ResizeArray [
+        "## Subtasks"
+        "### 1. Complete before fence"
+        "- [x] Complete"
+        "````markdown"
+        "### 2. Hidden by opening fence"
+        "- [x] Hidden"
+        "```` trailing content does not close"
+        "### 3. Still hidden after trailing fence content"
+        "- [x] Hidden"
+        "`````"
+        "### 4. Visible after longer closing fence"
+        "- [ ] Pending"
+        "    ```"
+        "### 5. Visible after indented backticks"
+        "- [x] Complete"
+        "## Closing Steps"
+        "### C1. Cleanup"
+        "- [x] Complete"
+        "## Decisions"
+    ]
+
+let fenceHeadings = parseHeadings fenceLines |> List.choose (snd >> tryHeadingId)
+let fenceCompleted, fenceTotal = computeProgress fenceLines
+
+assertEqual "fence parsing excludes only properly closed fenced content" [ "1"; "4"; "5"; "C1" ] fenceHeadings
+assertEqual "fence parsing progress" (3, 4) (fenceCompleted, fenceTotal)
+
 printfn "OK task markdown lifecycle parsing and ID validation"

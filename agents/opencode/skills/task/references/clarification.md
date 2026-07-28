@@ -14,7 +14,8 @@ After research, surface material gaps before implementation code is written.
 3. Record resolved answers in `## Decisions` with today's date.
 4. Note remaining items in `## Open Questions`.
 5. Mark unresolved blockers with `[blocked]` notation and set `Status: Blocked` while waiting.
-6. Resume implementation only after all material questions are resolved or the user explicitly accepts the uncertainty.
+6. Refine the draft delivery and validation subtasks or steps from the resolved answers and accepted uncertainties.
+7. Resume implementation or execution only after all material questions are resolved or the user explicitly accepts the uncertainty and, for code tasks, the design gate approves the final task-specific structure.
 
 ## Skip Rules
 

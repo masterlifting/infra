@@ -15,6 +15,8 @@ open System.Text.RegularExpressions
 /// optional letter suffix (3, 2a). Suffixes are still MATCHED here so ValidateTask.fsx
 /// can flag them — they are not allowed in tasks. This is the ONE heading definition.
 let headingRegex = Regex(@"^###\s+(?<id>C\d+|\d+\.\d+|\d+[a-z]?)\.")
+let numberedSubtaskIdRegex = Regex(@"^\d+(?:\.\d+)?$")
+let numberedHeadingRegex = Regex(@"^###\s+(?<id>\d+(?:\.\d+)?)\.\s+(?<title>.+)$")
 let taskIdRegex = Regex(@"^[A-Za-z]+-\d+$")
 let requiredCodeGateLabels =
     [ "Engineer-owned implementation completed"
@@ -22,7 +24,25 @@ let requiredCodeGateLabels =
       "Tester inspected existing coverage"
       "Substantive reviewer verdict recorded" ]
 
-let fenceRegex = Regex(@"^\s*(?<fence>`{3,}|~{3,})")
+let requiredDesignGateLabels =
+    [ "Design gate: language-matching architect verdict recorded"
+      "Conditional gates run (sql-reviewer for schema/migrations; security rule loaded for sensitive surfaces) or explicitly not applicable"
+      "Set `Implementation plan` to `non-complex` or `complex`; approve the final task-specific structure with no generic planning placeholders" ]
+
+let implementationGateLabels =
+    [ requiredCodeGateLabels.[0]
+      requiredCodeGateLabels.[1]
+      requiredCodeGateLabels.[3] ]
+
+let validationGateLabels = [ requiredCodeGateLabels.[2] ]
+let implementationPlanPrefix = "- Implementation plan: "
+let validImplementationPlans = Set.ofList [ "TBD"; "non-complex"; "complex" ]
+let genericImplementationHeading = "### 5. Implement and validate"
+let genericImplementationPlaceholder = "<!-- Add task-specific implementation and validation steps here for a non-complex task. -->"
+
+let openingFenceRegex = Regex(@"^ {0,3}(?<fence>`{3,}|~{3,})")
+let checkboxRegex = Regex(@"^\s*-\s+\[[ xX]\]")
+let checkedCheckboxRegex = Regex(@"^\s*-\s+\[[xX]\]")
 
 let tryTaskId (taskId: string) =
     let candidate = taskId.Trim()
@@ -94,22 +114,41 @@ let tryResolveTaskPath (root: string) (path: string) =
 let contentLineIndexes (lines: ResizeArray<string>) =
     let mutable openingFence: string option = None
 
+    let closesFence (opening: string) (line: string) =
+        let leadingSpaces = line |> Seq.takeWhile ((=) ' ') |> Seq.length
+
+        if leadingSpaces > 3 || line.Length <= leadingSpaces || line.[leadingSpaces] <> opening.[0] then
+            false
+        else
+            let candidateLength =
+                line.Substring(leadingSpaces)
+                |> Seq.takeWhile ((=) opening.[0])
+                |> Seq.length
+
+            candidateLength >= opening.Length
+            && line.Substring(leadingSpaces + candidateLength).Trim().Length = 0
+
     lines
     |> Seq.mapi (fun i line ->
-        let matched = fenceRegex.Match line
         match openingFence with
-        | None when matched.Success ->
-            openingFence <- Some matched.Groups.["fence"].Value
+        | None ->
+            let matched = openingFenceRegex.Match line
+            if matched.Success then
+                openingFence <- Some matched.Groups.["fence"].Value
+                None
+            else
+                Some i
+        | Some opening when closesFence opening line ->
+            openingFence <- None
             None
-        | Some opening when matched.Success ->
-            let candidate = matched.Groups.["fence"].Value
-            if candidate.[0] = opening.[0] && candidate.Length >= opening.Length then
-                openingFence <- None
-            None
-        | Some _ -> None
-        | None -> Some i)
+        | Some _ -> None)
     |> Seq.choose id
     |> Set.ofSeq
+
+let tryParseSubtaskNumber (value: string) =
+    match Int32.TryParse value with
+    | true, number -> Some number
+    | false, _ -> None
 
 let lifecycleBounds (lines: ResizeArray<string>) =
     let content = contentLineIndexes lines
@@ -160,6 +199,24 @@ let tryHeadingId (line: string) : string option =
     let m = headingRegex.Match(line)
     if m.Success then Some m.Groups.["id"].Value else None
 
+/// A numbered subtask ID and its safely parsed top-level number, if representable.
+let tryNumberedSubtaskId (line: string) =
+    match tryHeadingId line with
+    | Some id when numberedSubtaskIdRegex.IsMatch id ->
+        let root = id.Split('.').[0]
+        Some(id, tryParseSubtaskNumber root)
+    | _ -> None
+
+/// A numbered subtask heading with its title and safely parsed top-level number.
+let tryNumberedHeading (line: string) =
+    let matched = numberedHeadingRegex.Match line
+    if matched.Success then
+        let id = matched.Groups.["id"].Value
+        let root = id.Split('.').[0]
+        Some(id, matched.Groups.["title"].Value, tryParseSubtaskNumber root)
+    else
+        None
+
 let isHeading (line: string) = headingRegex.IsMatch(line)
 
 /// All subtask headings as (line-index, line) pairs, in document order.
@@ -181,10 +238,25 @@ let subtaskRange (content: Set<int>) (headings: (int * string) list) (lines: Res
 
     [ for k in i + 1 .. next - 1 do if content.Contains k then yield lines.[k] ]
 
+let hasGateCheckbox (gateLabel: string) (block: string list) =
+    block
+    |> List.exists (fun line ->
+        Regex.IsMatch(line, @"^\s*-\s+\[[ xX]\]\s+" + Regex.Escape gateLabel))
+
+let hasExactCheckbox (label: string) (block: string list) =
+    block
+    |> List.exists (fun line ->
+        Regex.IsMatch(line, @"^\s*-\s+\[[ xX]\]\s+" + Regex.Escape label + @"\s*$"))
+
+let hasExactCheckedCheckbox (label: string) (block: string list) =
+    block
+    |> List.exists (fun line ->
+        Regex.IsMatch(line, @"^\s*-\s+\[[xX]\]\s+" + Regex.Escape label + @"\s*$"))
+
 /// A block is "complete" iff it has at least one checkbox and all are ticked.
 let allChecked (block: string list) =
-    let checks = block |> List.filter (fun l -> Regex.IsMatch(l, @"^\s*-\s+\[[ xX]\]"))
-    not checks.IsEmpty && checks |> List.forall (fun l -> Regex.IsMatch(l, @"^\s*-\s+\[[xX]\]"))
+    let checks = block |> List.filter checkboxRegex.IsMatch
+    not checks.IsEmpty && checks |> List.forall checkedCheckboxRegex.IsMatch
 
 /// (completed, total) subtask counts for a TASK.md.
 let computeProgress (lines: ResizeArray<string>) =

@@ -70,14 +70,12 @@ When a turn is substantive, use:
 **Next**: {Any recommended next steps for the user, if applicable}
 ```
 
-Never send any data to third-party services without explicit user consent. Always ask for confirmation before performing such actions.
-
 ## Modular rules
 
 - OpenCode does not automatically parse `@...` references in this file.
 - When a referenced rule file is relevant to the current task, use the Read tool to load it and treat it as mandatory instruction.
 - Do not preemptively load every referenced rule file.
-- For creating or updating skills (`skills/*/SKILL.md`), lazy-load `@rules/skill.md` and treat it as mandatory.
+- For creating or updating skills (`skills/*/SKILL.md`), lazy-load `@C:/Users/andre/.config/opencode/rules/skill.md` and treat it as mandatory.
 
 ## Context compaction
 

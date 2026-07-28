@@ -34,7 +34,7 @@
 - Convert nullable FFI / interop inputs to `Option<T>` at the boundary; never propagate raw pointer null-checks into domain code.
 - Prefer combinators (`map`, `and_then`, `unwrap_or`, `unwrap_or_else`, `ok_or`) over `match` for simple `Option` transforms.
 - Use `if let Some(x) = ...` / `let Some(x) = ... else { return ... }` (let-else) for early returns on absence.
-- Never use `.unwrap()` or `.expect()` in library code or production paths unless the invariant is provably enforced; document with `// SAFETY:` style rationale when used.
+- Never use `.unwrap()` or `.expect()` in library code or production paths unless the invariant is provably enforced; document the invariant with a comment when used. Reserve `// SAFETY:` for unsafe-code invariants only.
 
 ## Error Handling
 

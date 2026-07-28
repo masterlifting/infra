@@ -10,7 +10,7 @@
 ## Type Declarations
 
 - Use `var` when the RHS type is obvious (`new`, literal, explicit cast, LINQ projection); use explicit types otherwise.
-- Use `const` for compile-time constants and two or more occurrences;
+- Use `const` for compile-time constants that appear in two or more places;
 - Use `readonly`/`init`/records for runtime immutability.
 - Use explicit element types in `foreach` when element type is unclear.
 - Use `dynamic` only when runtime binding is genuinely required; avoid `object` as an "any type".
@@ -54,7 +54,7 @@
 
 ## Option and Result Modeling
 
-- Prefer `Option<T>` for expected absence and `Result<T, TError>` for expected failures over `null`/exceptions.
+- When the repository already provides `Option<T>` for expected absence and `Result<T, TError>` for expected failures, prefer them over `null`/exceptions.
 - Model outcomes as explicit sum types (`Some/None`, `Ok/Error`) consumed with exhaustive pattern matching.
 - Reserve exceptions for truly exceptional/system failures, not normal domain flow.
 - Avoid implicit conversions from `Option`/`Result` to raw values; require explicit handling.

@@ -7,16 +7,16 @@ Scope: routing policy for the primary coordinator. Software subagents perform in
 - **engineer**: implements the assigned production-code work and owns builds.
 - **architect**: protects boundaries and dependency direction, evaluates maintainability/resilience/delivery tradeoffs, makes assumptions and risks explicit, and returns actionable guidance to the coordinator. Prefers simple, reversible designs and does not edit code by default.
 - **tester**: inspects existing coverage, designs and implements tests from the applicable testing rules, and owns test runs when the team has this role.
-- **reviewer-1 / reviewer-2**: independently review the assigned change on different providers. Never coordinate with each other or edit code.
+- **reviewer-1 / reviewer-2**: independently review the assigned change with distinct focus areas. Never coordinate with each other or edit code.
 
 ## Delegation
 
 - Assign each specialist a self-contained item of work with exact scope, relevant paths, constraints, and expected output.
 - Assign production-code implementation and builds to the engineer.
-- Treat explicitly read-only engineering specialists, such as DevOps, as analysis roles unless their agent permissions say otherwise.
+- All engineer roles own implementation and builds consistent with their domain.
 - Assign architecture analysis when work touches boundaries, dependencies, or architectural constraints.
 - When a tester exists, assign test analysis, design, implementation, and all test runs for work that needs tests; do not reduce the tester to a test runner.
-- For code review, assign `reviewer-1` and, after explicit approval for that specific provider-B review, `reviewer-2` in parallel; reconcile their independent findings yourself.
+- For code review, assign `reviewer-1` and `reviewer-2` in parallel; reconcile their independent findings yourself.
 - Do not ask subagents to coordinate or delegate to each other.
 
 ## Build/test ownership

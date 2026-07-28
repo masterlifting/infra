@@ -1,5 +1,5 @@
-#load "../../../scripts/ComputationExpressions.fsx"
-#load "../../../scripts/Exception.fsx"
+#load "C:/Users/andre/.config/opencode/scripts/ComputationExpressions.fsx"
+#load "C:/Users/andre/.config/opencode/scripts/Exception.fsx"
 
 open System
 open System.IO
@@ -15,13 +15,13 @@ let usage =
 YouTrack REST helper
 
 Usage:
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- me
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- get ISSUE-ID
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- search "for: me #Unresolved" [--top 20] [--skip 0]
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- create --project-id 0-0 --summary "Title" [--description "Details"]
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- comment ISSUE-ID --text "Comment text"
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- request GET "/users/me?fields=id,login,fullName,email"
-  dotnet fsi "$env:USERPROFILE\.config\opencode\skills\youtrack\scripts\YouTrackRest.fsx" -- request POST "/issues/PROJ-1" --body-file payload.json
+  dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- me
+  dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- get ISSUE-ID
+  dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- search "for: me #Unresolved" [--top 20] [--skip 0]
+  dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- create --project-id 0-0 --summary "Title" [--description "Details"]
+  dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- comment ISSUE-ID --text "Comment text"
+  dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- request GET "/users/me?fields=id,login,fullName,email"
+  dotnet fsi "C:/Users/andre/.config/opencode/skills/youtrack/scripts/YouTrackRest.fsx" -- request POST "/issues/PROJ-1" --body-file payload.json
 
 Defaults:
   Base URL: https://gizmopowered.myjetbrains.com/youtrack
