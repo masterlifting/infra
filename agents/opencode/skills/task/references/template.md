@@ -157,7 +157,7 @@ Steps:
 
 ### C0. Pre-commit review board
 
-- Run the primary reviewer selected by `references/agent-gates.md` on the full diff before any commit. Add a matching `reviewer-2`.
+- Run every reviewer selected by `references/agent-gates.md` independently and in parallel on the full diff before any commit.
   Steps:
 - [ ] Approved reviewers' verdicts recorded
   - Summary:

@@ -1,6 +1,6 @@
 ---
 description: Independent Rust review for correctness, safety, ownership boundaries, security, and test gaps.
-model: deepseek/deepseek-v4-pro
+model: moonshotai/kimi-k3
 variant: high
 mode: subagent
 steps: 12

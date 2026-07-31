@@ -1,6 +1,6 @@
 ---
 description: Independent .NET/C# review for correctness, boundary integrity, security, and test gaps.
-model: deepseek/deepseek-v4-pro
+model: moonshotai/kimi-k3
 variant: high
 mode: subagent
 steps: 12

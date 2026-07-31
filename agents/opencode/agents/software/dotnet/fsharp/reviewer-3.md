@@ -1,7 +1,7 @@
 ---
 description: Independent .NET/F# review for correctness, boundary integrity, security, and test gaps.
-model: openai/gpt-5.6-sol
-variant: medium
+model: moonshotai/kimi-k3
+variant: high
 mode: subagent
 steps: 12
 permission:

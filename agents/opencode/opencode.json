@@ -59,6 +59,22 @@
                 "--toolsets=context,repos,pull_requests"
             ],
             "timeout": 30000
+        },
+        "firefox": {
+            "type": "local",
+            "enabled": true,
+            "command": [
+                "cargo",
+                "run",
+                "--quiet",
+                "--release",
+                "--manifest-path",
+                "C:/Users/andre/.config/opencode/mcp/firefox/Cargo.toml"
+            ],
+            "environment": {
+                "GECKODRIVER_PATH": "C:/Users/andre/AppData/Local/Microsoft/WinGet/Packages/Mozilla.GeckoDriver_Microsoft.Winget.Source_8wekyb3d8bbwe/geckodriver.exe"
+            },
+            "timeout": 30000
         }
     },
     "plugin": ["@slkiser/opencode-quota@3.11.1"]

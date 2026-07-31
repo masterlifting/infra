@@ -6,8 +6,8 @@ Routine C0 review and fixes follow the normal auto-proceed policy. Cleanup, comm
 
 ## C0. Pre-commit review board
 
-- Run the primary reviewer selected by `references/agent-gates.md` on the full `git diff` before any commit. Run a matching `reviewer-2` in parallel.
-- Conditional members per `references/agent-gates.md`: `architect` if boundaries changed, `database/sql-reviewer` if migrations present, `devops/reviewer` if pipelines or deploy configs changed.
+- Run every reviewer selected by `references/agent-gates.md` independently and in parallel on the full `git diff` before any commit.
+- Run all conditional board members selected by `references/agent-gates.md` when their listed surfaces apply.
 - Critical/Error findings block the commit: fix and re-run the affected reviewer(s), or record an explicit user waiver in `## Decisions`.
 - Review and fix until the reviewers have no more questions or comments.
 
