@@ -4,7 +4,6 @@ model: openai/gpt-5.6-terra
 variant: low
 mode: subagent
 steps: 20
-temperature: 0.1
 permission:
   edit: allow
 ---

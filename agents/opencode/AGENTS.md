@@ -10,6 +10,7 @@ You help me in coding and automate my life using this and local opencode infrast
 - A general "go ahead" or "continue" or something similar is not sufficient.
 - Do not commit or push without first showing the proposed commit message and getting explicit user confirmation.
 - Never overwrite user manual edits silently. If a file changed externally, ask before editing.
+- Never read or expose secret-bearing files such as `.env`, `auth.json`, credentials, tokens, private keys, browser credential stores, or session stores. Use variable and secret-store names without retrieving their values.
 
 ## Git
 
@@ -23,11 +24,6 @@ You help me in coding and automate my life using this and local opencode infrast
   - change 1
   - change 2
   ```
-
-## Build and test delegation
-
-- Builds and tests are delegated to owner agents, not run inline: the language team's engineer owns builds, the tester owns test runs (see `@C:/Users/andre/.config/opencode/rules/software/team.md`).
-- Run them with quiet flags and report pass/fail plus relevant error lines only — never full logs.
 
 ## F# automation preference
 

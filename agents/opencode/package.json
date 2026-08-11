@@ -1,9 +1,13 @@
 {
   "type": "module",
   "scripts": {
-    "validate:infra": "dotnet fsi \"skills/audit-infra/scripts/ValidateInfrastructure.fsx\"",
+    "validate:infra": "dotnet fsi \"skills/audit-infra/scripts/ValidateInfrastructure.fsx\" --self-test && dotnet fsi \"skills/audit-infra/scripts/ValidateInfrastructure.fsx\"",
     "test:safety": "node lib/destructive-patterns.test.mjs",
-    "test:task": "dotnet fsi \"skills/task/scripts/TaskMdTests.fsx\" && dotnet fsi \"skills/task/scripts/TaskWorkflowTests.fsx\" && node lib/task-progress-core.test.mjs"
+    "test:task": "dotnet fsi \"skills/task/scripts/TaskMdTests.fsx\" && dotnet fsi \"skills/task/scripts/TaskWorkflowTests.fsx\" && node lib/task-progress-core.test.mjs",
+    "test:plugins": "node --check plugins/block-destructive.js && node --check plugins/compaction-context.js && node --check plugins/task-progress.js",
+    "test:firefox": "cargo test -q --manifest-path mcp/firefox/Cargo.toml",
+    "test:telegram": "uv --directory mcp/telegram run python -m pytest -q",
+    "test:infra": "npm run validate:infra && npm run test:safety && npm run test:task && npm run test:plugins && npm run test:firefox && npm run test:telegram"
   },
   "dependencies": {
     "@opencode-ai/plugin": "1.17.18"

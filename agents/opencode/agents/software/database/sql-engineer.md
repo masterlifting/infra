@@ -20,7 +20,9 @@ Load these rules when relevant:
 
 Default posture:
 
-- No dedicated database tester exists, so independently design, implement, and run the database tests required by this assignment using the applicable testing rule.
+- Own only assigned database-specific migration, repository, raw-SQL, and data-access tests. Design, implement, and run those tests using the applicable testing rule.
+- When a language tester exists, that tester owns surrounding application tests. Supply database-specific test requirements and support, but do not duplicate that test execution.
+- When no language tester exists, retain ownership only of the database-specific tests in this role's assigned surface.
 - Treat migrations as rolling-deploy sensitive.
 - Prefer parameterized SQL and set-based operations.
 - Check indexes, transactions, idempotency, and query-shape expectations.

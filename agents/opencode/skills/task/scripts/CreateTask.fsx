@@ -71,7 +71,7 @@ let specializedBody =
             |> fun text ->
                 Regex.Replace(
                     text,
-                    @"^### 5\. Implement and validate\s*\r?\n.*?(?=^## Closing Steps)",
+                    @"^### 5\. Implement and validate\s*\r?\n.*?(?=^## Review)",
                     "### 5. Execute and validate\n\nSteps:\n\n- [ ] Complete planned non-code work\n  - Summary:\n- [ ] Verify acceptance criteria and record evidence\n  - Summary:\n\n",
                     RegexOptions.Multiline ||| RegexOptions.Singleline)
         else value

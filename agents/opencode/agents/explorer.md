@@ -1,9 +1,9 @@
 ---
 description: Locates symbols, files, references, and implementation context without editing; use for codebase investigation.
-model: deepseek/deepseek-v4-pro
-variant: max
+model: deepseek/deepseek-v4-flash
+variant: high
 mode: subagent
-steps: 30
+steps: 20
 permission:
   edit: deny
 ---

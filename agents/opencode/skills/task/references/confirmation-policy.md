@@ -14,9 +14,9 @@ Replaces the flat "confirm before each subtask" rule. Tiered by risk and reversi
 ## Tier 2 — Auto-proceed (no confirmation)
 
 - Build via the team's engineer agent; test via the team's tester agent
-- Read-only git (`git status`, `git diff`, `git log`, `git branch --list`)
+- Metadata-only git commands explicitly allowed by global configuration (`git status`, branch identity, remotes, revisions, tree/file names)
 - File reads, grep, glob
-- Automatic task-progress synchronization through the global plugin; manual F# helper invocations follow the configured bash permission prompt (auto-allowed for task, office-documents, and audit-infra scripts)
+- Automatic task-progress synchronization through the global plugin; manual F# helper invocations follow the configured bash permission prompt (task and audit-infra scripts are auto-allowed; office-document conversion requires confirmation)
 - Updating the task file's progress counter / checkbox state for already-completed work
 - Spawning architect and reviewer gates per `references/agent-gates.md`
 - Assigning in-scope implementation, build, and test work to the owner agents

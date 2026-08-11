@@ -5,9 +5,9 @@ variant: medium
 mode: subagent
 steps: 15
 permission:
-  edit: deny
-  bash: ask
-  webfetch: ask
+    edit: deny
+    bash: ask
+    webfetch: ask
 ---
 
 You are the multimodal-lens subagent — the primary, responsible agent for visual content analysis.

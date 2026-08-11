@@ -1,15 +1,13 @@
-# Closing Steps (C0–C2)
+# Closing Steps
 
-Run after the last task-specific subtask, in order.
-Re-check from C0 onward whenever new work lands after a C-step was checked — treat the earlier check as stale.
-Routine C0 review and fixes follow the normal auto-proceed policy. Cleanup, commits, publishing, and other explicitly gated actions retain their confirmation requirements.
+Run after implementation, build, and tests. Review state follows `agent-gates.md`; cleanup, commits, publishing, and other explicitly gated actions retain their confirmation requirements.
 
-## C0. Pre-commit review board
+## C0. Discovery and Verification
 
-- Run every reviewer selected by `references/agent-gates.md` independently and in parallel on the full `git diff` before any commit.
-- Run all conditional board members selected by `references/agent-gates.md` when their listed surfaces apply.
-- Critical/Error findings block the commit: fix and re-run the affected reviewer(s), or record an explicit user waiver in `## Decisions`.
-- Review and fix until the reviewers have no more questions or comments.
+- Run the frozen review profile independently and in parallel against the same baseline.
+- Triage once, freeze the accepted finding set, remediate it, and run targeted Verification.
+- Permit at most one additional targeted remediation and Verification pass under `agent-gates.md`.
+- Do not restart Discovery or pursue unrelated improvements after the finding set freezes.
 
 ## C1. Clean up temporary artifacts
 
@@ -21,7 +19,7 @@ Before committing, remove only temporary artifacts created for the task outside 
 
 **Never remove:**
 
-- Source-tree files, including debug logging and stray files in touched repositories. Clean these before C0 so review covers the committed diff.
+- Source-tree files, including debug logging and stray files in touched repositories. Clean these before Discovery so review covers the intended diff.
 - The task's own `.tasks/<TASK-ID>/TASK.md`, `docs/`, and `scripts/` — these are intentional records.
 - Anything already committed as part of the change.
 - Files the user authored or edited by hand (confirm before deleting anything you didn't create).

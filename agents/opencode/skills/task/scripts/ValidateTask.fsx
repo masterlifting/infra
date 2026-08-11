@@ -104,6 +104,185 @@ if taskKinds.Length <> 1 then report "## Context must contain exactly one '- Tas
 let codeTask = taskKinds = [ "code" ]
 let hasC0 = subtaskHeadings |> List.exists (fun (_, line) -> tryHeadingId line = Some "C0")
 
+let requireSingleMarker sectionName prefix values =
+    match values with
+    | [ (_, value) ] when not (String.IsNullOrWhiteSpace value) -> Some value
+    | _ ->
+        report $"{sectionName} must contain exactly one non-empty '{prefix}...' marker"
+        None
+
+let solutionContractLines = sectionLines solutionContractHeading lines
+let reviewLines = sectionLines reviewHeading lines
+let solutionState = requireSingleMarker solutionContractHeading solutionStatePrefix (markerValues solutionStatePrefix solutionContractLines)
+let acceptedAssumptions = requireSingleMarker solutionContractHeading acceptedAssumptionsPrefix (markerValues acceptedAssumptionsPrefix solutionContractLines)
+let chosenSolution = requireSingleMarker solutionContractHeading chosenSolutionPrefix (markerValues chosenSolutionPrefix solutionContractLines)
+let importantContracts = requireSingleMarker solutionContractHeading importantContractsPrefix (markerValues importantContractsPrefix solutionContractLines)
+let implementationConstraints = requireSingleMarker solutionContractHeading implementationConstraintsPrefix (markerValues implementationConstraintsPrefix solutionContractLines)
+let reviewProfile = requireSingleMarker solutionContractHeading reviewProfilePrefix (markerValues reviewProfilePrefix solutionContractLines)
+let reviewState = requireSingleMarker reviewHeading reviewStatePrefix (markerValues reviewStatePrefix reviewLines)
+let implementationBaseline = requireSingleMarker reviewHeading implementationBaselinePrefix (markerValues implementationBaselinePrefix reviewLines)
+let remediationPass = requireSingleMarker reviewHeading remediationPassPrefix (markerValues remediationPassPrefix reviewLines)
+let buildEvidence = requireSingleMarker reviewHeading buildEvidencePrefix (markerValues buildEvidencePrefix reviewLines)
+let testEvidence = requireSingleMarker reviewHeading testEvidencePrefix (markerValues testEvidencePrefix reviewLines)
+
+match solutionState with
+| Some state when not (validSolutionStates.Contains state) -> report "Solution Contract State must be DRAFT or FROZEN"
+| _ -> ()
+
+match reviewProfile with
+| Some profile when not (validReviewProfiles.Contains profile) -> report "Solution Contract Review profile must be TBD, Standard, or Full / architecture-sensitive"
+| _ -> ()
+
+let reviewPass =
+    match remediationPass with
+    | Some value ->
+        match Int32.TryParse value with
+        | true, pass when pass >= 0 && pass <= 2 -> Some pass
+        | _ ->
+            report "Review Remediation pass must be an integer from 0 through 2"
+            None
+    | None -> None
+
+match reviewState with
+| Some state when not (validReviewStates.Contains state) -> report "Review State must be NEW, DISCOVERY, REMEDIATION, VERIFICATION, or FROZEN"
+| _ -> ()
+
+let acceptedFindingRows = tableRows acceptedFindingsHeading reviewLines
+let verificationReceiptRows = tableRows verificationReceiptsHeading reviewLines
+let acceptedFindingIds = ResizeArray<string>()
+let acceptedFindingStatuses = Collections.Generic.Dictionary<string, string>()
+let verificationReceiptIds = ResizeArray<string>()
+
+for (index, cells) in acceptedFindingRows do
+    match cells with
+    | [ id; contract; status ] when not (String.IsNullOrWhiteSpace id) && not (String.IsNullOrWhiteSpace contract) ->
+        if acceptedFindingIds.Contains id then report $"line {index + 1}: accepted finding ID '{id}' is duplicated"
+        else
+            acceptedFindingIds.Add id
+            acceptedFindingStatuses.[id] <- status
+        if not (validFindingStatuses.Contains status) then
+            report $"line {index + 1}: accepted finding status must be PENDING, FIXED, NOT FIXED, or REGRESSION INTRODUCED"
+    | _ -> report $"line {index + 1}: accepted finding requires ID, contract, and status"
+
+for (index, cells) in verificationReceiptRows do
+    match cells with
+    | [ findingId; result; evidence ] when not (String.IsNullOrWhiteSpace findingId) && not (String.IsNullOrWhiteSpace evidence) ->
+        if verificationReceiptIds.Contains findingId then report $"line {index + 1}: verification receipt ID '{findingId}' is duplicated"
+        else verificationReceiptIds.Add findingId
+        if not (validVerificationResults.Contains result) then
+            report $"line {index + 1}: verification result must be APPROVE, FIXED, NOT FIXED, or REGRESSION INTRODUCED"
+        elif findingId = "None" && result <> "APPROVE" then
+            report $"line {index + 1}: a None verification receipt must have result APPROVE"
+        elif findingId <> "None" && not (validFindingVerificationResults.Contains result) then
+            report $"line {index + 1}: APPROVE is valid only for Finding ID None"
+        elif findingId <> "None" && not (acceptedFindingIds.Contains findingId) then
+            report $"line {index + 1}: verification receipt references unknown accepted finding '{findingId}'"
+    | _ -> report $"line {index + 1}: verification receipt requires finding ID, result, and evidence"
+
+let requiresFrozenSolution =
+    reviewState
+    |> Option.exists (fun state -> state <> "NEW")
+
+let evidencePlaceholders =
+    Set.ofList
+        [ "TBD"
+          "TBD."
+          "NOT RUN"
+          "NOT RUN."
+          "NOT APPLICABLE"
+          "NOT APPLICABLE."
+          "N/A"
+          "NA"
+          "NONE"
+          "NONE."
+          "UNKNOWN"
+          "PENDING"
+          "PENDING."
+          "SKIPPED"
+          "SKIPPED."
+          "LATER"
+          "LATER." ]
+
+let isEvidencePlaceholder (value: string) =
+    String.IsNullOrWhiteSpace value || evidencePlaceholders.Contains(value.Trim().ToUpperInvariant())
+
+let hasRecordedWaiver (reference: string) =
+    sectionLines "## Decisions" lines
+    |> List.exists (fun (_, line) ->
+        let cells = line.Split('|') |> Array.map (fun value -> value.Trim()) |> Array.filter (fun value -> value <> "")
+        cells.Length >= 2
+        && Regex.IsMatch(cells.[0], @"^\d{4}-\d{2}-\d{2}$")
+        && cells.[1].Contains("waiv", StringComparison.OrdinalIgnoreCase)
+        && (cells |> Array.skip 1 |> Array.exists (fun value -> value.Contains(reference, StringComparison.OrdinalIgnoreCase))))
+
+let hasValidEvidence (evidence: string) =
+    let value = evidence.Trim()
+    let passed = Regex.Match(value, @"^Passed:\s+(?<result>.+)$")
+    let notApplicable = Regex.Match(value, @"^Not applicable:\s+(?<rationale>.+)$")
+    let waiver = Regex.Match(value, @"^Waived:\s+(?<reference>.+)$")
+
+    if isEvidencePlaceholder value then
+        false
+    elif passed.Success then
+        let result = passed.Groups.["result"].Value
+        not (isEvidencePlaceholder result)
+        && not (Regex.IsMatch(result, @"\b(?:fail(?:ed|ure)?|pending)\b", RegexOptions.IgnoreCase))
+    elif notApplicable.Success then
+        not (isEvidencePlaceholder notApplicable.Groups.["rationale"].Value)
+    elif waiver.Success then
+        let reference = waiver.Groups.["reference"].Value
+        not (isEvidencePlaceholder reference) && hasRecordedWaiver reference
+    elif value.StartsWith("Not applicable", StringComparison.OrdinalIgnoreCase)
+         || value.StartsWith("Waived", StringComparison.OrdinalIgnoreCase) then
+        false
+    else
+        false
+
+if requiresFrozenSolution then
+    match solutionState with
+    | Some "FROZEN" -> ()
+    | _ -> report "Review beyond NEW requires a FROZEN solution contract"
+    match chosenSolution, importantContracts, implementationConstraints, reviewProfile, implementationBaseline with
+    | Some solution, Some contracts, Some constraints, Some profile, Some baseline
+        when solution <> "TBD" && contracts <> "TBD" && constraints <> "TBD" && profile <> "TBD" && baseline <> "TBD" -> ()
+    | _ -> report "Review beyond NEW requires frozen solution details, a selected review profile, and an implementation baseline"
+    match buildEvidence, testEvidence with
+    | Some build, Some test when hasValidEvidence build && hasValidEvidence test -> ()
+    | _ -> report "Review beyond NEW requires exact 'Passed: <command/result>', exact 'Not applicable: <reason>', or a linked 'Waived: <reference>'"
+
+match reviewState, reviewPass with
+| Some "NEW", Some 0
+| Some "DISCOVERY", Some 0
+| Some "REMEDIATION", Some 1
+| Some "REMEDIATION", Some 2
+| Some "VERIFICATION", Some _
+| Some "FROZEN", Some _ -> ()
+| Some "NEW", Some _ -> report "Review State NEW requires remediation pass 0"
+| Some "DISCOVERY", Some _ -> report "Review State DISCOVERY requires remediation pass 0"
+| Some "REMEDIATION", Some _ -> report "Review State REMEDIATION requires remediation pass 1 or 2"
+| _ -> ()
+
+match reviewState, reviewPass with
+| Some ("VERIFICATION" | "FROZEN"), Some 0 when acceptedFindingIds.Count > 0 ->
+    report "Review with accepted findings requires remediation pass 1 or 2 before VERIFICATION or FROZEN"
+| _ -> ()
+
+match reviewState with
+| Some "FROZEN" ->
+    if acceptedFindingIds.Count = 0 then
+        let hasApproval = verificationReceiptRows |> List.exists (fun (_, cells) -> cells = [ "None"; "APPROVE" ] || (cells.Length = 3 && cells.[0] = "None" && cells.[1] = "APPROVE"))
+        if not hasApproval then report "Review State FROZEN with no accepted findings requires a None/APPROVE verification receipt"
+    else
+        for findingId in acceptedFindingIds do
+            let receipts = verificationReceiptRows |> List.filter (fun (_, cells) -> cells.Length = 3 && cells.[0] = findingId)
+            match receipts with
+            | [ (_, [ _; "FIXED"; _ ]) ] when acceptedFindingStatuses.[findingId] = "FIXED" -> ()
+            | [ (_, [ _; "FIXED"; _ ]) ] -> report $"Review State FROZEN requires accepted finding '{findingId}' status FIXED"
+            | [ (_, [ _; result; _ ]) ] -> report $"Review State FROZEN requires accepted finding '{findingId}' to verify as FIXED, not {result}"
+            | [] -> report $"Review State FROZEN requires a verification receipt for accepted finding '{findingId}'"
+            | _ -> report $"Review State FROZEN requires exactly one verification receipt for accepted finding '{findingId}'"
+| _ -> ()
+
 let implementationPlans =
     lines
     |> Seq.mapi (fun i line -> i, line)

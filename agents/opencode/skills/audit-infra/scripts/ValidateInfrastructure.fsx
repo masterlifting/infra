@@ -1,5 +1,6 @@
 open System
 open System.Collections.Generic
+open System.Diagnostics
 open System.IO
 open System.Text.Json
 open System.Text.RegularExpressions
@@ -15,6 +16,7 @@ type Finding =
       Message: string }
 
 let args = fsi.CommandLineArgs |> Array.skip 1
+let selfTest = args |> Array.contains "--self-test"
 
 let defaultRoot =
     Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, "../../.."))
@@ -51,23 +53,284 @@ let recursiveFiles directory pattern =
 let requiredPaths =
     [ "AGENTS.md"
       "README.md"
+      "package.json"
       "opencode.json"
       "agents"
       "commands"
       "lib"
+      "mcp"
       "plugins"
       "rules"
       "scripts"
       "skills" ]
 
-for path in requiredPaths do
-    let fullPath = Path.Combine(root, path)
-    if not (File.Exists fullPath || Directory.Exists fullPath) then
-        error "required-path" path "Required infrastructure path does not exist"
+if not selfTest then
+    for path in requiredPaths do
+        let fullPath = Path.Combine(root, path)
+        if not (File.Exists fullPath || Directory.Exists fullPath) then
+            error "required-path" path "Required infrastructure path does not exist"
 
 let tryProperty (name: string) (element: JsonElement) =
     let mutable value = Unchecked.defaultof<JsonElement>
     if element.TryGetProperty(name, &value) then Some value else None
+
+let commandArguments (command: string) =
+    Regex.Matches(command, "\"(?<quoted>[^\"]+)\"|(?<plain>[^\\s]+)")
+    |> Seq.cast<Match>
+    |> Seq.map (fun matched ->
+        if matched.Groups.["quoted"].Success then matched.Groups.["quoted"].Value
+        else matched.Groups.["plain"].Value)
+    |> Seq.toList
+
+let commandTargetSpecs arguments =
+    let at index = arguments |> List.tryItem index
+    let optionValue option =
+        arguments
+        |> List.tryFindIndex ((=) option)
+        |> Option.bind (fun index -> at (index + 1))
+
+    let workingDirectory = optionValue "--directory"
+    let directTargets =
+        arguments
+        |> List.filter (fun argument ->
+            [ ".fsx"; ".mjs"; ".js"; ".py"; ".toml"; ".exe" ]
+            |> List.exists (fun extension -> argument.EndsWith(extension, StringComparison.OrdinalIgnoreCase)))
+
+    let executableTarget =
+        arguments
+        |> List.tryHead
+        |> Option.filter Path.IsPathRooted
+        |> Option.toList
+
+    executableTarget @ directTargets
+    |> List.map (fun target ->
+        match workingDirectory with
+        | Some directory when not (Path.IsPathRooted target) && target.EndsWith(".py", StringComparison.OrdinalIgnoreCase) ->
+            Path.Combine(directory, target)
+        | _ -> target)
+    |> List.distinct
+
+let isWithinRoot candidateRoot candidate =
+    let fullRoot = Path.GetFullPath(candidateRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+    let fullCandidate = Path.GetFullPath(candidate)
+    fullCandidate.StartsWith(fullRoot + string Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+    || fullCandidate.Equals(fullRoot, StringComparison.OrdinalIgnoreCase)
+
+let checkCommandTargets sourcePath command =
+    commandArguments command
+    |> commandTargetSpecs
+    |> List.iter (fun target ->
+        let fullTarget =
+            if Path.IsPathRooted target then Path.GetFullPath target
+            else Path.GetFullPath(Path.Combine(root, target))
+
+        if isWithinRoot root fullTarget then
+            if not (File.Exists fullTarget || Directory.Exists fullTarget) then
+                error "command-target" sourcePath $"In-root command target '{relativePath fullTarget}' does not exist"
+        elif Path.IsPathRooted target && not (File.Exists fullTarget || Directory.Exists fullTarget) then
+            warning "external-command-target" sourcePath "An external absolute command target does not exist")
+
+let missingInRootTargets candidateRoot exists arguments =
+    commandTargetSpecs arguments
+    |> List.filter (fun target ->
+        let fullTarget =
+            if Path.IsPathRooted target then Path.GetFullPath target
+            else Path.GetFullPath(Path.Combine(candidateRoot, target))
+        isWithinRoot candidateRoot fullTarget && not (exists fullTarget))
+
+let requiredScripts =
+    [ "validate:infra"
+      "test:safety"
+      "test:task"
+      "test:plugins"
+      "test:firefox"
+      "test:telegram"
+      "test:infra" ]
+
+let scriptHas (command: string) (fragment: string) = command.IndexOf(fragment, StringComparison.Ordinal) >= 0
+
+let validatePackageScripts (scripts: JsonElement) =
+    let getScript name =
+        tryProperty name scripts
+        |> Option.filter (fun value -> value.ValueKind = JsonValueKind.String)
+        |> Option.map (fun value -> value.GetString())
+
+    for name in requiredScripts do
+        if getScript name |> Option.isNone then
+            error "package-script" "package.json" $"Missing required npm script '{name}'"
+
+    match getScript "validate:infra" with
+    | Some command ->
+        let validator = "skills/audit-infra/scripts/ValidateInfrastructure.fsx"
+        if not (scriptHas command "--self-test" && Regex.Matches(command, Regex.Escape validator).Count >= 2) then
+            error "package-script" "package.json" "validate:infra must self-test before live validation"
+    | None -> ()
+
+    match getScript "test:infra" with
+    | Some command ->
+        for name in [ "validate:infra"; "test:safety"; "test:task"; "test:plugins"; "test:firefox"; "test:telegram" ] do
+            if not (scriptHas command name) then
+                error "package-script" "package.json" $"test:infra must invoke '{name}'"
+    | None -> ()
+
+    let requireScriptShape name expected =
+        match getScript name with
+        | Some command when scriptHas command expected -> ()
+        | Some _ -> error "package-script" "package.json" $"{name} must include '{expected}'"
+        | None -> ()
+
+    requireScriptShape "test:firefox" "cargo test -q --manifest-path mcp/firefox/Cargo.toml"
+    requireScriptShape "test:telegram" "uv --directory mcp/telegram run python -m pytest -q"
+
+    match getScript "test:plugins" with
+    | Some command ->
+        let pluginsRoot = Path.Combine(root, "plugins")
+        if Directory.Exists pluginsRoot then
+            for plugin in Directory.EnumerateFiles(pluginsRoot, "*.js", SearchOption.TopDirectoryOnly) do
+                let target = relativePath plugin
+                if not (scriptHas command $"node --check {target}") then
+                    error "package-script" "package.json" $"test:plugins must check '{target}'"
+    | None -> ()
+
+    for script in scripts.EnumerateObject() do
+        if script.Value.ValueKind = JsonValueKind.String then
+            checkCommandTargets "package.json" (script.Value.GetString())
+
+let envReference = Regex(@"^\{env:[A-Za-z_][A-Za-z0-9_]*\}$")
+
+let validateEnvironment sourcePath (environment: JsonElement) =
+    if environment.ValueKind = JsonValueKind.Object then
+        for variable in environment.EnumerateObject() do
+            if variable.Value.ValueKind <> JsonValueKind.String || not (envReference.IsMatch(variable.Value.GetString())) then
+                error "mcp-env-reference" sourcePath $"MCP environment variable '{variable.Name}' must use a {{env:...}} reference"
+
+let permissionAction config key expected =
+    tryProperty "permission" config
+    |> Option.bind (tryProperty key)
+    |> Option.bind (fun value ->
+        if value.ValueKind = JsonValueKind.String then Some(value.GetString())
+        else None)
+    |> Option.exists ((=) expected)
+
+let permissionPatternAction config key pattern expected =
+    tryProperty "permission" config
+    |> Option.bind (tryProperty key)
+    |> Option.bind (tryProperty pattern)
+    |> Option.filter (fun value -> value.ValueKind = JsonValueKind.String)
+    |> Option.exists (fun value -> value.GetString() = expected)
+
+let officeDocumentsFsiPattern = "dotnet fsi \"C:/Users/andre/.config/opencode/skills/office-documents/scripts/*"
+
+let validatePermissionMarkers config =
+    let requiredReadDenies = [ "**/.env"; "**/auth.json"; "**/credentials.json"; "**/secrets.json"; "**/token.json"; "**/id_rsa"; "**/cookies.sqlite" ]
+    for marker in requiredReadDenies do
+        if not (permissionPatternAction config "read" marker "deny") then
+            error "secret-read-marker" "opencode.json" $"Missing deny marker '{marker}'"
+
+    for tool in [ "telegram_*"; "github_*"; "firefox_*" ] do
+        if not (permissionAction config tool "ask") then
+            error "mcp-permission" "opencode.json" $"MCP permission '{tool}' must be ask"
+
+    if not (permissionPatternAction config "bash" officeDocumentsFsiPattern "ask") then
+        error "office-fsi-permission" "opencode.json" "OfficeDocuments dotnet-fsi permission must be ask"
+
+    for tool in [ "firefox_read"; "firefox_find"; "firefox_close" ] do
+        if not (permissionAction config tool "allow") then
+            error "mcp-permission" "opencode.json" $"MCP permission '{tool}' must be allow"
+
+let sourceFilesWithoutBuildArtifacts directory =
+    let excluded = Set.ofList [ "target"; "build"; "cache"; ".venv"; "node_modules"; "tests" ]
+    let rec collect current =
+        seq {
+            for file in Directory.EnumerateFiles(current) do
+                let extension = Path.GetExtension(file).ToLowerInvariant()
+                if extension = ".py" || extension = ".rs" then yield file
+
+            for child in Directory.EnumerateDirectories(current) do
+                if not (excluded.Contains(Path.GetFileName(child).ToLowerInvariant())) then
+                    yield! collect child
+        }
+    if Directory.Exists directory then collect directory else Seq.empty
+
+let validateMcpInventory config =
+    let configuredPrefixes =
+        tryProperty "permission" config
+        |> Option.map (fun permissions ->
+            permissions.EnumerateObject()
+            |> Seq.choose (fun property ->
+                let matched = Regex.Match(property.Name, @"^(?<prefix>[a-z]+)_\*$")
+                if matched.Success then Some matched.Groups.["prefix"].Value else None)
+            |> Set.ofSeq)
+        |> Option.defaultValue Set.empty
+
+    let mcpRoot = Path.Combine(root, "mcp")
+    let exposedPrefixes =
+        sourceFilesWithoutBuildArtifacts mcpRoot
+        |> Seq.filter (fun file -> Regex.IsMatch(File.ReadAllText file, @"(?m)^\s*@\w+\.tool\b"))
+        |> Seq.map (fun file ->
+            Path.GetRelativePath(mcpRoot, file).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).[0].ToLowerInvariant())
+        |> Set.ofSeq
+
+    for prefix in Set.difference exposedPrefixes configuredPrefixes do
+        warning "mcp-inventory-drift" "mcp" $"Heuristic tool inventory found unclassified '{prefix}_*' definitions"
+
+let validateMcpConfiguration config =
+    validatePermissionMarkers config
+    validateMcpInventory config
+
+    match tryProperty "mcp" config with
+    | Some servers when servers.ValueKind = JsonValueKind.Object ->
+        for server in servers.EnumerateObject() do
+            let path = "opencode.json"
+            match tryProperty "command" server.Value with
+            | Some command when command.ValueKind = JsonValueKind.Array ->
+                let arguments = command.EnumerateArray() |> Seq.choose (fun value -> if value.ValueKind = JsonValueKind.String then Some(value.GetString()) else None) |> Seq.toList
+                checkCommandTargets path (String.concat " " arguments)
+            | _ -> error "mcp-command" path $"MCP server '{server.Name}' has no local command array"
+
+            tryProperty "environment" server.Value |> Option.iter (validateEnvironment path)
+    | _ -> error "mcp-config" "opencode.json" "Missing MCP definitions"
+
+let checkPluginSyntax (pluginPath: string) (exitCode: int) (output: string) =
+    if exitCode <> 0 then Some $"{relativePath pluginPath}: {output.Trim()}" else None
+
+let validatePlugins () =
+    let pluginsRoot = Path.Combine(root, "plugins")
+    if Directory.Exists pluginsRoot then
+        for plugin in Directory.EnumerateFiles(pluginsRoot, "*.js", SearchOption.TopDirectoryOnly) do
+            let startInfo = ProcessStartInfo("node")
+            startInfo.ArgumentList.Add "--check"
+            startInfo.ArgumentList.Add plugin
+            startInfo.UseShellExecute <- false
+            startInfo.RedirectStandardError <- true
+            use pluginProcess = Process.Start startInfo
+            let output = pluginProcess.StandardError.ReadToEnd()
+            pluginProcess.WaitForExit()
+            match checkPluginSyntax plugin pluginProcess.ExitCode output with
+            | Some message -> error "plugin-syntax" (relativePath plugin) message
+            | None -> ()
+
+let requireSelfTest name condition =
+    if not condition then failwith $"self-test failed: {name}"
+
+if selfTest then
+    requireSelfTest
+        "package target failure"
+        (missingInRootTargets root (fun _ -> false) [ "node"; "lib/missing.mjs" ] = [ "lib/missing.mjs" ])
+    requireSelfTest
+        "MCP --directory target"
+        (commandTargetSpecs [ "uv"; "--directory"; "mcp/telegram"; "run"; "main.py" ] = [ Path.Combine("mcp/telegram", "main.py") ])
+    requireSelfTest
+        "MCP --manifest-path target"
+        (commandTargetSpecs [ "cargo"; "test"; "--manifest-path"; "mcp/firefox/Cargo.toml" ] = [ "mcp/firefox/Cargo.toml" ])
+    requireSelfTest "plugin syntax failure" (checkPluginSyntax (Path.Combine(root, "plugins/broken.js")) 1 "Unexpected token" |> Option.isSome)
+    use fixture = JsonDocument.Parse("""{ "permission": { "telegram_*": "ask", "github_*": "ask", "firefox_*": "ask", "firefox_read": "allow", "firefox_find": "allow", "firefox_close": "allow", "bash": { "dotnet fsi \"C:/Users/andre/.config/opencode/skills/office-documents/scripts/*": "allow" }, "read": { "**/.env": "deny", "**/auth.json": "deny", "**/credentials.json": "deny", "**/secrets.json": "deny", "**/token.json": "deny", "**/id_rsa": "deny", "**/cookies.sqlite": "deny" } } }""")
+    requireSelfTest
+        "Office permission marker"
+        (not (permissionPatternAction fixture.RootElement "bash" officeDocumentsFsiPattern "ask"))
+    requireSelfTest "permission markers" (permissionPatternAction fixture.RootElement "read" "**/.env" "deny")
+    printfn "OK infrastructure validator self-test"
+    exit 0
 
 let configPath = Path.Combine(root, "opencode.json")
 
@@ -79,6 +342,8 @@ if File.Exists configPath then
         match tryProperty "$schema" config with
         | Some schema when schema.GetString() = "https://opencode.ai/config.json" -> ()
         | _ -> error "config-schema" "opencode.json" "Missing or unexpected $schema value"
+
+        validateMcpConfiguration config
 
         if tryProperty "agent" config |> Option.isSome then
             error "inline-agents" "opencode.json" "Agent definitions must remain file-based under agents/"
@@ -120,6 +385,19 @@ if File.Exists configPath then
         | None -> ()
     with ex ->
         error "config-json" "opencode.json" $"Invalid JSON: {ex.Message}"
+
+let packagePath = Path.Combine(root, "package.json")
+
+if File.Exists packagePath then
+    try
+        use document = JsonDocument.Parse(File.ReadAllText packagePath)
+        match tryProperty "scripts" document.RootElement with
+        | Some scripts when scripts.ValueKind = JsonValueKind.Object -> validatePackageScripts scripts
+        | _ -> error "package-scripts" "package.json" "Missing scripts object"
+    with ex ->
+        error "package-json" "package.json" $"Invalid JSON: {ex.Message}"
+
+validatePlugins ()
 
 let parseFrontmatter file =
     let lines = File.ReadAllLines file
@@ -224,6 +502,26 @@ if Directory.Exists agentsRoot then
     for file in recursiveFiles agentsRoot "*.md" do
         parseFrontmatter file
         |> Option.iter (fun (_, values) -> requireFrontmatterValue "description" file values |> ignore)
+
+let prohibitedAgentNames = Set.ofList [ "audit-session"; "coordinator"; "gaps-clarifier"; "simplifier"; "review-arbiter" ]
+let isProhibitedAgentName (agentName: string) = prohibitedAgentNames.Contains(agentName.ToLowerInvariant())
+
+if Directory.Exists agentsRoot then
+    for file in recursiveFiles agentsRoot "*.md" do
+        let agentName = Path.GetFileNameWithoutExtension file
+        if isProhibitedAgentName agentName then
+            error "prohibited-agent" (relativePath file) $"Agent definition '{agentName}' is prohibited by the migration contract"
+
+let obsoleteTeamRule = Path.Combine(root, "rules", "software", "team.md")
+if File.Exists obsoleteTeamRule then
+    error "removed-surface" "rules/software/team.md" "Removed team rule must not exist"
+
+if Directory.Exists skillsRoot then
+    for file in recursiveFiles skillsRoot "SKILL.md" do
+        let content = File.ReadAllText file
+        if Directory.GetParent(file).Name.Equals("audit-session", StringComparison.OrdinalIgnoreCase)
+           || Regex.IsMatch(content, "(?im)^name:\\s*['\"]?audit-session['\"]?\\s*$") then
+            error "removed-surface" (relativePath file) "Removed audit-session skill must not exist"
 
 let commandsRoot = Path.Combine(root, "commands")
 
@@ -371,6 +669,188 @@ let markdownFiles =
     }
     |> Seq.distinct
     |> Seq.toArray
+
+let containsMarker (marker: string) (content: string) =
+    content.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0
+
+let missingMarkers (markers: string list) (content: string) =
+    markers |> List.filter (fun marker -> not (containsMarker marker content))
+
+let requireMarkers (code: string) (path: string) (markers: string list) =
+    let fullPath = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar))
+    if not (File.Exists fullPath) then
+        error code path "Required canonical file does not exist"
+    else
+        let content = File.ReadAllText fullPath
+        for marker in missingMarkers markers content do
+            error code path $"Missing canonical marker '{marker}'"
+
+let canonicalReviewMarkers =
+    [ "NEW -> DISCOVERY -> REMEDIATION -> VERIFICATION -> FROZEN"
+      "Discovery occurs once, after the evidence precondition, per frozen solution and implementation baseline"
+      "return `BLOCKED: <missing inputs>` and stop"
+      "accepted finding set is finite and frozen"
+      "Verification is not a fresh review"
+      "generic request to review a frozen artifact means Verification"
+      "Automatic remediation is limited to two passes" ]
+
+requireMarkers "review-convergence" "rules/software/review.md" canonicalReviewMarkers
+
+requireMarkers
+    "task-convergence"
+    "skills/task/SKILL.md"
+    [ "Freeze one solution after independent architecture proposals"
+      "one Discovery review"
+      "bounded remediation, and targeted Verification"
+      "Do not restart Discovery after the accepted finding set freezes" ]
+
+requireMarkers
+    "audit-convergence"
+    "skills/audit-infra/SKILL.md"
+    [ "accepts a finite scope"
+      "freezes the smallest sufficient solution"
+      "targeted semantic Verification rather than another broad audit"
+      "at most two remediation passes"
+      "generic re-review of a frozen result as Verification" ]
+
+let reviewerMandates =
+    [ "dotnet/csharp", "C#"
+      "dotnet/fsharp", "F#"
+      "rust", "Rust" ]
+
+let mandateRequirements =
+    [ 1, [ "Primary mandate:"; "behavioral correctness"; "regressions"; "error handling" ]
+      2, [ "Primary mandate:"; "frozen architecture"; "dependency direction"; "accidental complexity" ]
+      3, [ "Primary mandate:"; "contracts"; "acceptance criteria"; "test adequacy" ] ]
+
+let duplicateMandatePaths mandates =
+    mandates
+    |> Seq.filter (fun (_, _, mandate) -> not (String.IsNullOrWhiteSpace mandate))
+    |> Seq.groupBy (fun (_, _, mandate) -> mandate)
+    |> Seq.choose (fun (_, reviewers) ->
+        let paths = reviewers |> Seq.map (fun (_, path, _) -> path) |> Seq.sort |> Seq.toList
+        if paths.Length > 1 then Some paths else None)
+    |> Seq.toList
+
+for languagePath, languageName in reviewerMandates do
+    let mandates = ResizeArray<int * string * string>()
+
+    for reviewerNumber, markers in mandateRequirements do
+        let path = $"agents/software/{languagePath}/reviewer-{reviewerNumber}.md"
+        let fullPath = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar))
+
+        if not (File.Exists fullPath) then
+            error "reviewer-mandate" path $"Supported {languageName} reviewer {reviewerNumber} definition is missing"
+        else
+            let content = File.ReadAllText fullPath
+            for marker in markers do
+                if not (containsMarker marker content) then
+                    error "reviewer-mandate" path $"Reviewer {reviewerNumber} is missing required mandate marker '{marker}'"
+
+            let mandate =
+                Regex.Match(content, @"(?im)^Primary mandate:\s*(?<mandate>.+)$")
+                |> fun matched -> if matched.Success then matched.Groups.["mandate"].Value else ""
+                |> fun value -> Regex.Replace(value.ToLowerInvariant(), @"\s+", " ").Trim()
+
+            mandates.Add(reviewerNumber, path, mandate)
+
+    for reviewerPaths in duplicateMandatePaths mandates do
+        error "reviewer-mandate" (String.concat ", " reviewerPaths) $"Supported {languageName} reviewer mandates must be distinct"
+
+let taskTemplateMarkers =
+    [ "## Solution Contract"
+      "- State: DRAFT"
+      "- Accepted assumptions: None recorded."
+      "- Chosen solution: TBD"
+      "- Important boundaries/contracts: TBD"
+      "- Implementation constraints: TBD"
+      "- Review profile: TBD"
+      "## Review"
+      "- State: NEW"
+      "- Implementation baseline: TBD"
+      "- Remediation pass: 0"
+      "- Build evidence: Not run."
+      "- Test evidence: Not run."
+      "### Accepted findings"
+      "### Verification receipts"
+      "Design gate: language-matching architect verdict recorded"
+      "Engineer-owned implementation completed"
+      "Tester inspected existing coverage"
+      "Run the one Discovery selected by `references/agent-gates.md`"
+      "build and test evidence is recorded"
+      "returns `BLOCKED`"
+      "Targeted Verification receipts recorded" ]
+
+requireMarkers "task-template-drift" "skills/task/references/template.md" taskTemplateMarkers
+
+requireMarkers
+    "task-template-drift"
+    "skills/task/scripts/TaskMd.fsx"
+    [ "requiredCodeGateLabels"
+      "requiredDesignGateLabels"
+      "solutionContractHeading"
+      "reviewHeading"
+      "validReviewStates"
+      "Design gate: language-matching architect verdict recorded"
+      "Engineer-owned implementation completed"
+      "Tester inspected existing coverage"
+      "## Solution Contract"
+      "## Review"
+      "- Implementation baseline: "
+      "- Remediation pass: "
+      "- Build evidence: "
+      "- Test evidence: "
+      "### Accepted findings"
+      "### Verification receipts" ]
+
+requireMarkers
+    "task-template-drift"
+    "skills/task/scripts/CreateTask.fsx"
+    [ "references"
+      "template.md"
+      "canonical task template has no markdown code block" ]
+
+requireMarkers
+    "task-template-drift"
+    "skills/task/scripts/ValidateTask.fsx"
+    [ "#load \"TaskMd.fsx\""
+      "requiredCodeGateLabels"
+      "requiredDesignGateLabels"
+      "validReviewStates"
+      "Not applicable:"
+      "Waived:"
+      "hasRecordedWaiver" ]
+
+let validatorPath = Path.Combine(__SOURCE_DIRECTORY__, Path.GetFileName __SOURCE_FILE__) |> relativePath
+let textExtensions = Set.ofList [ ".md"; ".fsx"; ".js"; ".mjs"; ".json" ]
+
+let liveInfrastructureFiles =
+    seq {
+        for name in [ "AGENTS.md"; "README.md"; "opencode.json" ] do
+            let file = Path.Combine(root, name)
+            if File.Exists file then yield file
+
+        for directory in [ "agents"; "commands"; "lib"; "plugins"; "rules"; "scripts"; "skills" ] do
+            let fullDirectory = Path.Combine(root, directory)
+            if Directory.Exists fullDirectory then
+                for file in recursiveFiles fullDirectory "*" do
+                    if textExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()) then yield file
+    }
+    |> Seq.filter (fun file -> not ((relativePath file).Equals(validatorPath, StringComparison.OrdinalIgnoreCase)))
+    |> Seq.distinct
+
+let removedRoutePatterns =
+    [ "audit-session", Regex(@"(?i)(?:agents/)?audit-session(?:\.md)?|skills/audit-session/?")
+      "rules/software/team.md", Regex(@"(?i)rules/software/team\.md") ]
+
+let removedRouteMatches (content: string) =
+    removedRoutePatterns
+    |> List.choose (fun (route, pattern) -> if pattern.IsMatch content then Some route else None)
+
+for file in liveInfrastructureFiles do
+    let content = File.ReadAllText file
+    for route in removedRouteMatches content do
+        error "removed-route-reference" (relativePath file) $"Live infrastructure references removed route '{route}'"
 
 let normalizedRoot = root.Replace("\\", "/").TrimEnd('/')
 let knownRouteRoots = [ "agents/"; "commands/"; "lib/"; "plugins/"; "references/"; "rules/"; "scripts/"; "skills/" ]

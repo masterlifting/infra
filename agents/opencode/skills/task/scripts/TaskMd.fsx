@@ -21,8 +21,7 @@ let taskIdRegex = Regex(@"^[A-Za-z]+-\d+$")
 let requiredCodeGateLabels =
     [ "Engineer-owned implementation completed"
       "Engineer-owned build verdict recorded"
-      "Tester inspected existing coverage"
-      "Substantive reviewer verdict recorded" ]
+      "Tester inspected existing coverage" ]
 
 let requiredDesignGateLabels =
     [ "Design gate: language-matching architect verdict recorded"
@@ -31,14 +30,34 @@ let requiredDesignGateLabels =
 
 let implementationGateLabels =
     [ requiredCodeGateLabels.[0]
-      requiredCodeGateLabels.[1]
-      requiredCodeGateLabels.[3] ]
+      requiredCodeGateLabels.[1] ]
 
 let validationGateLabels = [ requiredCodeGateLabels.[2] ]
 let implementationPlanPrefix = "- Implementation plan: "
 let validImplementationPlans = Set.ofList [ "TBD"; "non-complex"; "complex" ]
 let genericImplementationHeading = "### 5. Implement and validate"
 let genericImplementationPlaceholder = "<!-- Add task-specific implementation and validation steps here for a non-complex task. -->"
+let solutionContractHeading = "## Solution Contract"
+let reviewHeading = "## Review"
+let solutionStatePrefix = "- State: "
+let acceptedAssumptionsPrefix = "- Accepted assumptions: "
+let chosenSolutionPrefix = "- Chosen solution: "
+let importantContractsPrefix = "- Important boundaries/contracts: "
+let implementationConstraintsPrefix = "- Implementation constraints: "
+let reviewProfilePrefix = "- Review profile: "
+let reviewStatePrefix = "- State: "
+let implementationBaselinePrefix = "- Implementation baseline: "
+let remediationPassPrefix = "- Remediation pass: "
+let buildEvidencePrefix = "- Build evidence: "
+let testEvidencePrefix = "- Test evidence: "
+let acceptedFindingsHeading = "### Accepted findings"
+let verificationReceiptsHeading = "### Verification receipts"
+let validSolutionStates = Set.ofList [ "DRAFT"; "FROZEN" ]
+let validReviewStates = Set.ofList [ "NEW"; "DISCOVERY"; "REMEDIATION"; "VERIFICATION"; "FROZEN" ]
+let validReviewProfiles = Set.ofList [ "TBD"; "Standard"; "Full / architecture-sensitive" ]
+let validFindingStatuses = Set.ofList [ "PENDING"; "FIXED"; "NOT FIXED"; "REGRESSION INTRODUCED" ]
+let validVerificationResults = Set.ofList [ "APPROVE"; "FIXED"; "NOT FIXED"; "REGRESSION INTRODUCED" ]
+let validFindingVerificationResults = Set.ofList [ "FIXED"; "NOT FIXED"; "REGRESSION INTRODUCED" ]
 
 let openingFenceRegex = Regex(@"^ {0,3}(?<fence>`{3,}|~{3,})")
 let checkboxRegex = Regex(@"^\s*-\s+\[[ xX]\]")
@@ -193,6 +212,48 @@ let sectionContentLineIndexes (heading: string) (lines: ResizeArray<string>) =
             |> Option.map fst
             |> Option.defaultValue lines.Count
         content |> Set.filter (fun i -> i > start && i < afterLast)
+
+let sectionLines (heading: string) (lines: ResizeArray<string>) =
+    sectionContentLineIndexes heading lines
+    |> Seq.map (fun index -> index, lines.[index])
+    |> Seq.toList
+
+let markerValues (prefix: string) (section: (int * string) list) =
+    section
+    |> List.choose (fun (index, line) ->
+        if line.StartsWith(prefix, StringComparison.Ordinal) then
+            Some(index, line.Substring(prefix.Length).Trim())
+        else
+            None)
+
+let private tryMarkdownHeadingLevel (line: string) =
+    let matched = Regex.Match(line, @"^ {0,3}(?<marks>#{1,6})(?:\s|$)")
+    if matched.Success then Some matched.Groups.["marks"].Length else None
+
+let tableRows (heading: string) (section: (int * string) list) =
+    let headingIndex = section |> List.tryFind (fun (_, line) -> line.Trim() = heading) |> Option.map fst
+    let headingLevel = tryMarkdownHeadingLevel heading
+
+    match headingIndex, headingLevel with
+    | None, _
+    | _, None -> []
+    | Some start, Some level ->
+        section
+        |> List.filter (fun (index, _) -> index > start)
+        |> List.takeWhile (fun (_, line) ->
+            match tryMarkdownHeadingLevel line with
+            | Some nextLevel -> nextLevel > level
+            | None -> true)
+        |> List.filter (fun (_, line) -> line.StartsWith("|", StringComparison.Ordinal))
+        |> List.choose (fun (index, line) ->
+            let cells = line.Split('|') |> Array.map (fun value -> value.Trim())
+            if cells.Length < 3 then
+                Some(index, [])
+            else
+                let values = cells.[1 .. cells.Length - 2]
+                let isSeparator = values |> Array.forall (fun value -> Regex.IsMatch(value, @"^:?-+:?$") )
+                let isHeader = values |> Array.exists (fun value -> value.Equals("ID", StringComparison.OrdinalIgnoreCase) || value.Equals("Finding ID", StringComparison.OrdinalIgnoreCase))
+                if isSeparator || isHeader then None else Some(index, values |> Array.toList))
 
 /// The <id> of a subtask heading line (e.g. "3", "2a", "3.1", "C0"), or None.
 let tryHeadingId (line: string) : string option =

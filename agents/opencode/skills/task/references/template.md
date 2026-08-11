@@ -49,6 +49,16 @@ Drop rules at generation time:
 - (Functional behavior requirement)
 - (Safety/security/regression requirement)
 
+## Solution Contract
+
+- State: DRAFT
+- Accepted assumptions: None recorded.
+- Chosen solution: TBD
+- Important boundaries/contracts: TBD
+- Implementation constraints: TBD
+- Review profile: TBD
+- Rejected alternatives: None recorded.
+
 ## Non-Goals
 
 - (Explicitly out of scope)
@@ -129,10 +139,11 @@ During subtasks 1-3, refine this implementation area before the design gate comp
 - Non-complex task: retain subtask 5 and add concrete task-specific
   implementation and validation steps with observable completion criteria;
   set `Implementation plan: non-complex` and remove the placeholder comment.
-- Preserve the applicable implementation, build, test, and review gate
-  checkboxes below in the resulting structure. For a complex task, put the
-  implementation/build/review gates in each applicable implementation subtask
-  and the tester gate in the applicable validation subtask or subtasks.
+- Preserve the applicable implementation, build, and test gate checkboxes
+  below in the resulting structure. For a complex task, put the
+  implementation/build gates in each applicable implementation subtask and
+  the tester gate in the applicable validation subtask or subtasks. Keep
+  Discovery and Verification in C0 after build and test evidence.
 - If this structure changes after the design gate was approved, reopen subtask
   3 and re-run that gate. On resume, preserve an already-started subtask 5 and
   its evidence; rename/refine it and append new IDs instead of deleting history.
@@ -147,8 +158,26 @@ Steps:
   - Summary:
 - [ ] Tester inspected existing coverage, designed and implemented required tests, and recorded the test verdict; if no tester exists, implementation-agent test ownership recorded
   - Summary:
-- [ ] Substantive reviewer verdict recorded, or change documented as non-substantive
-  - Summary:
+
+## Review
+
+- State: NEW
+- Implementation baseline: TBD
+- Remediation pass: 0
+- Build evidence: Not run.
+- Test evidence: Not run.
+
+After work, use `Passed: <command/result>`, `Not applicable: <reason>`, or `Waived: <Decision reference>`.
+
+### Accepted findings
+
+| ID | Contract | Status |
+| -- | -------- | ------ |
+
+### Verification receipts
+
+| Finding ID | Result | Evidence |
+| ---------- | ------ | -------- |
 
 ## Closing Steps
 
@@ -157,13 +186,13 @@ Steps:
 
 ### C0. Pre-commit review board
 
-- Run every reviewer selected by `references/agent-gates.md` independently and in parallel on the full diff before any commit.
+- Run the one Discovery selected by `references/agent-gates.md` independently and in parallel on the full diff only after build and test evidence is recorded. An explicit not-applicable rationale or recorded waiver may replace either evidence item. A reviewer missing required evidence returns `BLOCKED`; do not transition from `NEW` or proceed with review.
   Steps:
-- [ ] Approved reviewers' verdicts recorded
+- [ ] Discovery reviewers' verdicts recorded after the evidence precondition
   - Summary:
 - [ ] Critical/Error findings fixed or waived in `## Decisions`
   - Summary:
-- [ ] Affected reviewers re-run after fixes changed the diff
+- [ ] Targeted Verification receipts recorded for the frozen accepted finding set
   - Summary:
 
 ### C1. Clean up temporary artifacts

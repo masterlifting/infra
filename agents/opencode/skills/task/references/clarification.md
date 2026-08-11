@@ -1,21 +1,21 @@
 # Clarification Procedure
 
-After research, surface material gaps before implementation code is written.
+After research, classify uncertainty before implementation code is written.
+
+## Classification
+
+- `BLOCKING`: unresolved input can materially change observable behavior, architecture, acceptance criteria, public contracts, data integrity, security, or required inputs/outputs. Ask the user and stop affected work.
+- `ASSUMPTION`: resolve from explicit requirements, existing contracts/code, repository conventions, then the simplest reversible and least-surprising behavior. Record meaningful assumptions.
+- `NON-BLOCKING`: does not materially affect delivery. Resolve without interrupting execution.
 
 ## Chat Gate
 
-1. Compile clarification questions from research:
-   - Ambiguous acceptance criteria.
-   - Undefined edge cases.
-   - Unclear scope.
-   - Missing inputs or outputs.
-   - Conflicting constraints.
-2. Post the full list in chat. The user may answer some directly.
-3. Record resolved answers in `## Decisions` with today's date.
-4. Note remaining items in `## Open Questions`.
-5. Mark unresolved blockers with `[blocked]` notation and set `Status: Blocked` while waiting.
-6. Refine the draft delivery and validation subtasks or steps from the resolved answers and accepted uncertainties.
-7. Resume implementation or execution only after all material questions are resolved or the user explicitly accepts the uncertainty and, for code tasks, the design gate approves the final task-specific structure.
+1. Classify each gap as `BLOCKING`, `ASSUMPTION`, or `NON-BLOCKING`.
+2. Ask only the full set of `BLOCKING` questions in chat.
+3. Record answers and meaningful assumptions in `## Decisions`; keep unresolved blockers in `## Open Questions`.
+4. Mark unresolved blockers with `[blocked]` notation and set `Status: Blocked` while waiting.
+5. Refine delivery and validation work from resolved answers and accepted assumptions.
+6. Resume affected work when blockers are resolved or explicitly accepted and, for code tasks, the solution is frozen.
 
 ## Skip Rules
 

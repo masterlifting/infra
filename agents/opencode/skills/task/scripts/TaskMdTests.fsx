@@ -74,4 +74,43 @@ let fenceCompleted, fenceTotal = computeProgress fenceLines
 assertEqual "fence parsing excludes only properly closed fenced content" [ "1"; "4"; "5"; "C1" ] fenceHeadings
 assertEqual "fence parsing progress" (3, 4) (fenceCompleted, fenceTotal)
 
+let contractLines =
+    ResizeArray [
+        "## Solution Contract"
+        "- State: DRAFT"
+        "- Accepted assumptions: None recorded."
+        "- Chosen solution: TBD"
+        "- Important boundaries/contracts: TBD"
+        "- Implementation constraints: TBD"
+        "- Review profile: TBD"
+        "## Review"
+        "- State: NEW"
+        "- Implementation baseline: TBD"
+        "- Remediation pass: 0"
+        "- Build evidence: Not run."
+        "- Test evidence: Not run."
+        "### Accepted findings"
+        "| ID | Contract | Status |"
+        "| -- | -------- | ------ |"
+        "| FIND-1 | Durable contract | FIXED |"
+        "### Verification receipts"
+        "| Finding ID | Result | Evidence |"
+        "| ---------- | ------ | -------- |"
+        "| FIND-1 | FIXED | TaskWorkflowTests |"
+        "## Notes"
+        "- State: ignored outside contract sections"
+    ]
+
+let solutionMarkers =
+    sectionLines solutionContractHeading contractLines
+    |> markerValues solutionStatePrefix
+
+let reviewSection = sectionLines reviewHeading contractLines
+let findingRows = tableRows acceptedFindingsHeading reviewSection
+let receiptRows = tableRows verificationReceiptsHeading reviewSection
+
+assertEqual "solution contract marker is isolated from review state" [ (1, "DRAFT") ] solutionMarkers
+assertEqual "accepted finding rows exclude markdown table metadata" [ (16, [ "FIND-1"; "Durable contract"; "FIXED" ]) ] findingRows
+assertEqual "verification receipt rows exclude markdown table metadata" [ (20, [ "FIND-1"; "FIXED"; "TaskWorkflowTests" ]) ] receiptRows
+
 printfn "OK task markdown lifecycle parsing and ID validation"
