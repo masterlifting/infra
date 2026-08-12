@@ -52,7 +52,10 @@ Drop rules at generation time:
 ## Solution Contract
 
 - State: DRAFT
+- Requirements: TBD
+- Acceptance criteria: TBD
 - Accepted assumptions: None recorded.
+- Non-goals: TBD
 - Chosen solution: TBD
 - Important boundaries/contracts: TBD
 - Implementation constraints: TBD
@@ -87,19 +90,19 @@ Steps:
 
 ### 2. Clarify gaps before implementation
 
-After subtask 1 research, surface clarification questions before implementation.
-This subtask blocks implementation until all material questions are resolved or
-the user explicitly accepts the uncertainty.
+Classify gaps under `references/clarification.md`: ask only `BLOCKING`
+questions, record meaningful assumptions, resolve `NON-BLOCKING` gaps without
+interrupting, and block only unresolved `BLOCKING` gaps.
 
 Steps:
 
-- [ ] Compile clarification questions from research, acceptance criteria, edge cases, missing inputs/outputs, or conflicting constraints
+- [ ] Classify research gaps as BLOCKING, ASSUMPTION, or NON-BLOCKING
   - Summary:
-- [ ] Post the full question list in chat and capture answers in `## Decisions` or `## Open Questions`
+- [ ] Ask only BLOCKING questions and record answers or meaningful assumptions in `## Decisions` or `## Open Questions`
   - Summary:
-- [ ] Refine the draft delivery and validation work from resolved questions and accepted uncertainties
+- [ ] Resolve NON-BLOCKING gaps in the task plan without interruption
   - Summary:
-- [ ] Mark unresolved blockers with `[blocked]` notation and set `Status: Blocked` while waiting
+- [ ] Mark only unresolved BLOCKING gaps with `[blocked]` notation and set `Status: Blocked` while waiting
   - Summary:
 
 ### 3. Design gate
@@ -109,9 +112,9 @@ Blocks implementation subtasks until the gate is clean or explicitly waived
 
 Steps:
 
-- [ ] Design gate: language-matching architect verdict recorded
+- [ ] Required independent architect proposals recorded and coordinator solution frozen
   - Summary:
-- [ ] Conditional gates run (sql-reviewer for schema/migrations; security rule loaded for sensitive surfaces) or explicitly not applicable
+- [ ] Conditional specialists run per `references/agent-gates.md` or explicitly N/A
   - Summary:
 - [ ] Set `Implementation plan` to `non-complex` or `complex`; approve the final task-specific structure with no generic planning placeholders
   - Summary:

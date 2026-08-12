@@ -22,7 +22,7 @@ Route broad OpenCode infrastructure reviews to the read-only `audit-infra` subag
 2. Delegate the comparative audit to the `audit-infra` subagent with exact local paths and requested focus areas. If already running as `audit-infra`, execute the assigned audit instead of delegating again.
 3. Select session, harness, or project scope. Inspect only relevant infrastructure; audit-only mode ends after ranked findings freeze.
 4. For explicitly requested mutation, the primary coordinator accepts a finite scope, chooses and freezes the smallest sufficient solution, and records the acceptance matrix in a task or session record. The `audit-infra` subagent remains read-only.
-5. Obtain explicit user confirmation for each bounded batch before editing, run applicable deterministic validation, then perform targeted semantic Verification rather than another broad audit.
+5. Already explicitly authorized frozen batches may execute; global >10-file confirmation pauses and action-specific safety gates remain authoritative. Run applicable deterministic validation, then perform targeted semantic Verification rather than another broad audit.
 6. Freeze the accepted finding set. Allow at most two remediation passes; stop and report a blocking finding that remains after pass 2.
 7. Treat a later generic re-review of a frozen result as Verification unless the user explicitly requests redesign or proves a hard invalidation condition.
 

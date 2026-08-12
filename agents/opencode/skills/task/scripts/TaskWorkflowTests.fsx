@@ -67,7 +67,10 @@ let replaceRequired (oldValue: string) (newValue: string) (text: string) =
 let frozenReview (text: string) =
     text
     |> replaceRequired "- State: DRAFT" "- State: FROZEN"
+    |> replaceRequired "- Requirements: TBD" "- Requirements: Preserve durable task workflow validation"
+    |> replaceRequired "- Acceptance criteria: TBD" "- Acceptance criteria: Enforce the documented task invariants"
     |> replaceRequired "- Accepted assumptions: None recorded." "- Accepted assumptions: No material assumptions remain."
+    |> replaceRequired "- Non-goals: TBD" "- Non-goals: Do not alter production task behavior"
     |> replaceRequired "- Chosen solution: TBD" "- Chosen solution: Durable task workflow"
     |> replaceRequired "- Important boundaries/contracts: TBD" "- Important boundaries/contracts: TASK.md durable review contract"
     |> replaceRequired "- Implementation constraints: TBD" "- Implementation constraints: Preserve resumability and safe writes"
@@ -77,6 +80,18 @@ let frozenReview (text: string) =
     |> replaceRequired "- Build evidence: Not run." "- Build evidence: Not applicable: script-only contract"
     |> replaceRequired "- Test evidence: Not run." "- Test evidence: Passed: npm run test:task"
     |> replaceRequired "| ---------- | ------ | -------- |" "| ---------- | ------ | -------- |\n| None | APPROVE | No accepted findings |"
+
+let frozenSolutionContract (text: string) =
+    text
+    |> replaceRequired "- State: DRAFT" "- State: FROZEN"
+    |> replaceRequired "- Requirements: TBD" "- Requirements: Preserve durable task workflow validation"
+    |> replaceRequired "- Acceptance criteria: TBD" "- Acceptance criteria: Enforce the documented task invariants"
+    |> replaceRequired "- Accepted assumptions: None recorded." "- Accepted assumptions: No material assumptions remain."
+    |> replaceRequired "- Non-goals: TBD" "- Non-goals: Do not alter production task behavior"
+    |> replaceRequired "- Chosen solution: TBD" "- Chosen solution: Exact canonical design-gate markers"
+    |> replaceRequired "- Important boundaries/contracts: TBD" "- Important boundaries/contracts: TASK.md validation contract"
+    |> replaceRequired "- Implementation constraints: TBD" "- Implementation constraints: Preserve resumability and safe writes"
+    |> replaceRequired "- Review profile: TBD" "- Review profile: Standard"
 
 let addAcceptedFinding findingId contract status (text: string) =
     replaceRequired
@@ -139,6 +154,12 @@ try
     assertTrue "code task dropped C0" (codeText.Contains "### C0.")
     assertTrue "code task dropped C2" (codeText.Contains "### C2.")
     assertTrue "generated code task retained an obsolete routine reviewer gate" (not (codeText.Contains "Substantive reviewer verdict recorded"))
+    assertContains "clarification asks only blocking questions" "Ask only BLOCKING questions" codeText
+    assertContains "clarification records assumptions" "record answers or meaningful assumptions" codeText
+    assertContains "clarification resolves non-blocking gaps" "Resolve NON-BLOCKING gaps" codeText
+    assertTrue
+        "clarification generated full-question-list wording"
+        (not (codeText.Contains("full question list", StringComparison.OrdinalIgnoreCase)))
 
     for field in
         [ "## Solution Contract"
@@ -372,33 +393,88 @@ try
     assertTrue "incomplete frozen review was accepted" (incompleteFrozenValidation.ExitCode <> 0)
     assertContains "incomplete frozen review diagnostic" "Review State FROZEN requires accepted finding 'FIND-1' to verify as FIXED, not NOT FIXED" incompleteFrozenValidation.Output
 
-    let architectGate = requiredDesignGateLabels.Head
-    let completedGateWithoutArchitect =
+    let convergenceGate = requiredDesignGateLabels.Head
+    let conditionalSpecialistGate = requiredDesignGateLabels.[1]
+    let completedGateWithDraftContract =
+        codeText
+        |> frozenSolutionContract
+        |> replaceRequired "- State: FROZEN" "- State: DRAFT"
+        |> completeDesignGate
+    File.WriteAllText(codePath, completedGateWithDraftContract)
+    let draftContractValidation = runFsi fixtureRoot validateScript [ codePath ]
+    assertTrue "completed design gate accepted a DRAFT solution contract" (draftContractValidation.ExitCode <> 0)
+    assertContains "completed design gate DRAFT contract diagnostic" "completed design gate requires a FROZEN Solution Contract" draftContractValidation.Output
+
+    for placeholderField, populatedValue in
+        [ "- Requirements: TBD", "- Requirements: Preserve durable task workflow validation"
+          "- Acceptance criteria: TBD", "- Acceptance criteria: Enforce the documented task invariants"
+          "- Accepted assumptions: None recorded.", "- Accepted assumptions: No material assumptions remain."
+          "- Non-goals: TBD", "- Non-goals: Do not alter production task behavior"
+          "- Chosen solution: TBD", "- Chosen solution: Exact canonical design-gate markers"
+          "- Important boundaries/contracts: TBD", "- Important boundaries/contracts: TASK.md validation contract"
+          "- Implementation constraints: TBD", "- Implementation constraints: Preserve resumability and safe writes"
+          "- Review profile: TBD", "- Review profile: Standard" ] do
+        let completedGateWithPlaceholder =
+            codeText
+            |> frozenSolutionContract
+            |> replaceRequired populatedValue placeholderField
+            |> completeDesignGate
+            |> replaceRequired "- Implementation plan: TBD" "- Implementation plan: non-complex"
+            |> replaceRequired genericImplementationPlaceholder ""
+            |> synchronizeProgress
+        File.WriteAllText(codePath, completedGateWithPlaceholder)
+        let placeholderContractValidation = runFsi fixtureRoot validateScript [ codePath ]
+        assertTrue ($"completed design gate accepted placeholder contract field: {placeholderField}") (placeholderContractValidation.ExitCode <> 0)
+        assertContains
+            ($"completed design gate placeholder diagnostic: {placeholderField}")
+            "completed design gate requires a FROZEN Solution Contract"
+            placeholderContractValidation.Output
+
+    let completeGateWithFrozenContractAndCheckedImplementation =
+        codeText
+        |> frozenSolutionContract
+        |> completeDesignGate
+        |> replaceRequired "- Implementation plan: TBD" "- Implementation plan: non-complex"
+        |> replaceRequired genericImplementationPlaceholder ""
+        |> replaceRequired
+            "- [ ] Engineer-owned implementation completed\n  - Summary:"
+            "- [x] Engineer-owned implementation completed\n  - Summary: Work evidence recorded"
+        |> synchronizeProgress
+    File.WriteAllText(codePath, completeGateWithFrozenContractAndCheckedImplementation)
+    let completeGateWithFrozenContractValidation = runFsi fixtureRoot validateScript [ codePath ]
+    assertTrue
+        ("complete exact design gate with a populated frozen contract did not unlock later implementation: " + completeGateWithFrozenContractValidation.Output)
+        (completeGateWithFrozenContractValidation.ExitCode = 0)
+    assertTrue
+        "production contract rejected 'Rejected alternatives: None recorded.'"
+        (completeGateWithFrozenContractAndCheckedImplementation.Contains("- Rejected alternatives: None recorded.", StringComparison.Ordinal))
+
+    let completedGateWithoutConvergence =
         completeDesignGate codeText
         |> fun text ->
             Regex.Replace(
                 text,
-                $"(?m)^- \[x\] {Regex.Escape architectGate}\r?\n  - Summary: Design evidence recorded\r?\n",
+                $"(?m)^- \[x\] {Regex.Escape convergenceGate}\r?\n  - Summary: Design evidence recorded\r?\n",
                 "")
         |> synchronizeProgress
-    File.WriteAllText(codePath, completedGateWithoutArchitect)
-    let missingArchitectValidation = runFsi fixtureRoot validateScript [ codePath ]
-    assertTrue "design gate without architect checkbox was accepted" (missingArchitectValidation.ExitCode <> 0)
-    assertContains "missing architect gate diagnostic" $"design gate is missing required checkbox: {architectGate}" missingArchitectValidation.Output
+    File.WriteAllText(codePath, completedGateWithoutConvergence)
+    let missingConvergenceValidation = runFsi fixtureRoot validateScript [ codePath ]
+    assertTrue "design gate without convergence checkbox was accepted" (missingConvergenceValidation.ExitCode <> 0)
+    assertContains "missing convergence gate diagnostic" $"design gate is missing required checkbox: {convergenceGate}" missingConvergenceValidation.Output
 
-    let renamedArchitectGate =
-        completeDesignGate (codeText.Replace(architectGate, "Design gate: alternate architect review recorded"))
-    File.WriteAllText(codePath, renamedArchitectGate)
-    let renamedArchitectValidation = runFsi fixtureRoot validateScript [ codePath ]
-    assertTrue "design gate with renamed architect checkbox was accepted" (renamedArchitectValidation.ExitCode <> 0)
-    assertContains "renamed architect gate diagnostic" $"design gate is missing required checkbox: {architectGate}" renamedArchitectValidation.Output
+    let renamedConvergenceGate =
+        completeDesignGate (codeText.Replace(convergenceGate, "Design gate: alternate architect review recorded"))
+    File.WriteAllText(codePath, renamedConvergenceGate)
+    let renamedConvergenceValidation = runFsi fixtureRoot validateScript [ codePath ]
+    assertTrue "design gate with renamed convergence checkbox was accepted" (renamedConvergenceValidation.ExitCode <> 0)
+    assertContains "renamed convergence gate diagnostic" $"design gate is missing required checkbox: {convergenceGate}" renamedConvergenceValidation.Output
 
-    let suffixedArchitectGate =
+    let suffixedConvergenceGate =
         completeDesignGate codeText
         |> fun text ->
             text.Replace(
-                "- [x] " + architectGate,
-                "- [x] " + architectGate + " but not approved",
+                "- [x] " + convergenceGate,
+                "- [x] " + convergenceGate + " but not approved",
                 StringComparison.Ordinal)
         |> fun text ->
             text.Replace(
@@ -406,12 +482,28 @@ try
                 "- [x] Engineer-owned implementation completed\n  - Summary: Work evidence recorded",
                 StringComparison.Ordinal)
         |> synchronizeProgress
-    File.WriteAllText(codePath, suffixedArchitectGate)
-    let suffixedArchitectValidation = runFsi fixtureRoot validateScript [ codePath ]
-    assertTrue "design gate with suffixed architect checkbox was accepted" (suffixedArchitectValidation.ExitCode <> 0)
-    assertContains "suffixed architect gate diagnostic" $"design gate is missing required checkbox: {architectGate}" suffixedArchitectValidation.Output
-    assertContains "suffixed architect gate lock diagnostic" "implementation and validation work rooted at subtask 5 or later cannot be checked before the design gate completes" suffixedArchitectValidation.Output
-    assertTrue "suffixed architect gate fixture produced a summary violation" (not (suffixedArchitectValidation.Output.Contains("checked item requires", StringComparison.OrdinalIgnoreCase)))
+    File.WriteAllText(codePath, suffixedConvergenceGate)
+    let suffixedConvergenceValidation = runFsi fixtureRoot validateScript [ codePath ]
+    assertTrue "design gate with suffixed convergence checkbox was accepted" (suffixedConvergenceValidation.ExitCode <> 0)
+    assertContains "suffixed convergence gate diagnostic" $"design gate is missing required checkbox: {convergenceGate}" suffixedConvergenceValidation.Output
+    assertContains "suffixed convergence gate lock diagnostic" "implementation and validation work rooted at subtask 5 or later cannot be checked before the design gate completes" suffixedConvergenceValidation.Output
+    assertTrue "suffixed convergence gate fixture produced a summary violation" (not (suffixedConvergenceValidation.Output.Contains("checked item requires", StringComparison.OrdinalIgnoreCase)))
+
+    let suffixedConditionalSpecialistGate =
+        completeDesignGate codeText
+        |> fun text ->
+            text.Replace(
+                "- [x] " + conditionalSpecialistGate,
+                "- [x] " + conditionalSpecialistGate + " when convenient",
+                StringComparison.Ordinal)
+        |> synchronizeProgress
+    File.WriteAllText(codePath, suffixedConditionalSpecialistGate)
+    let suffixedConditionalSpecialistValidation = runFsi fixtureRoot validateScript [ codePath ]
+    assertTrue "design gate with suffixed conditional-specialist checkbox was accepted" (suffixedConditionalSpecialistValidation.ExitCode <> 0)
+    assertContains
+        "conditional-specialist exact-marker diagnostic"
+        $"design gate is missing required checkbox: {conditionalSpecialistGate}"
+        suffixedConditionalSpecialistValidation.Output
 
     let arbitraryCompletedDesignGate =
         Regex.Replace(
@@ -432,7 +524,7 @@ try
     File.WriteAllText(codePath, arbitraryCompletedDesignGate)
     let arbitraryGateValidation = runFsi fixtureRoot validateScript [ codePath ]
     assertTrue "arbitrary design gate checkbox unlocked implementation" (arbitraryGateValidation.ExitCode <> 0)
-    assertContains "arbitrary design gate canonical diagnostic" $"design gate is missing required checkbox: {architectGate}" arbitraryGateValidation.Output
+    assertContains "arbitrary design gate canonical diagnostic" $"design gate is missing required checkbox: {convergenceGate}" arbitraryGateValidation.Output
     assertContains "arbitrary design gate implementation lock diagnostic" "implementation and validation work rooted at subtask 5 or later cannot be checked before the design gate completes" arbitraryGateValidation.Output
     assertTrue "arbitrary design gate fixture produced a summary violation" (not (arbitraryGateValidation.Output.Contains("checked item requires", StringComparison.OrdinalIgnoreCase)))
 
@@ -475,7 +567,10 @@ try
     assertTrue "checked decimal implementation work was accepted before the design gate" (checkedDecimalImplementationValidation.ExitCode <> 0)
     assertContains "checked decimal implementation diagnostic" "implementation and validation work rooted at subtask 5 or later cannot be checked before the design gate completes" checkedDecimalImplementationValidation.Output
 
-    let designGateTbd = completeDesignGate codeText
+    let designGateTbd =
+        codeText
+        |> frozenSolutionContract
+        |> completeDesignGate
     File.WriteAllText(codePath, designGateTbd)
     let designGateTbdValidation = runFsi fixtureRoot validateScript [ codePath ]
     assertTrue "completed design gate accepted TBD implementation plan" (designGateTbdValidation.ExitCode <> 0)

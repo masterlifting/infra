@@ -114,11 +114,15 @@ let requireSingleMarker sectionName prefix values =
 let solutionContractLines = sectionLines solutionContractHeading lines
 let reviewLines = sectionLines reviewHeading lines
 let solutionState = requireSingleMarker solutionContractHeading solutionStatePrefix (markerValues solutionStatePrefix solutionContractLines)
+let requirements = requireSingleMarker solutionContractHeading requirementsPrefix (markerValues requirementsPrefix solutionContractLines)
+let acceptanceCriteria = requireSingleMarker solutionContractHeading acceptanceCriteriaPrefix (markerValues acceptanceCriteriaPrefix solutionContractLines)
 let acceptedAssumptions = requireSingleMarker solutionContractHeading acceptedAssumptionsPrefix (markerValues acceptedAssumptionsPrefix solutionContractLines)
+let nonGoals = requireSingleMarker solutionContractHeading nonGoalsPrefix (markerValues nonGoalsPrefix solutionContractLines)
 let chosenSolution = requireSingleMarker solutionContractHeading chosenSolutionPrefix (markerValues chosenSolutionPrefix solutionContractLines)
 let importantContracts = requireSingleMarker solutionContractHeading importantContractsPrefix (markerValues importantContractsPrefix solutionContractLines)
 let implementationConstraints = requireSingleMarker solutionContractHeading implementationConstraintsPrefix (markerValues implementationConstraintsPrefix solutionContractLines)
 let reviewProfile = requireSingleMarker solutionContractHeading reviewProfilePrefix (markerValues reviewProfilePrefix solutionContractLines)
+let rejectedAlternatives = requireSingleMarker solutionContractHeading rejectedAlternativesPrefix (markerValues rejectedAlternativesPrefix solutionContractLines)
 let reviewState = requireSingleMarker reviewHeading reviewStatePrefix (markerValues reviewStatePrefix reviewLines)
 let implementationBaseline = requireSingleMarker reviewHeading implementationBaselinePrefix (markerValues implementationBaselinePrefix reviewLines)
 let remediationPass = requireSingleMarker reviewHeading remediationPassPrefix (markerValues remediationPassPrefix reviewLines)
@@ -238,13 +242,34 @@ let hasValidEvidence (evidence: string) =
     else
         false
 
+let isPopulatedContractValue (value: string) =
+    not (String.IsNullOrWhiteSpace value)
+    && not (value.Trim().Equals("TBD", StringComparison.OrdinalIgnoreCase))
+
+let isPopulatedAcceptedAssumptions (value: string) =
+    isPopulatedContractValue value
+    && not (value.Trim().Equals("None recorded.", StringComparison.OrdinalIgnoreCase))
+
+let solutionContractFrozenAndComplete =
+    match solutionState, requirements, acceptanceCriteria, acceptedAssumptions, nonGoals, chosenSolution, importantContracts, implementationConstraints, reviewProfile, rejectedAlternatives with
+    | Some "FROZEN", Some requirements, Some acceptanceCriteria, Some assumptions, Some nonGoals, Some solution, Some contracts, Some constraints, Some profile, Some alternatives
+        when isPopulatedContractValue requirements
+             && isPopulatedContractValue acceptanceCriteria
+             && isPopulatedAcceptedAssumptions assumptions
+             && isPopulatedContractValue nonGoals
+             && isPopulatedContractValue solution
+             && isPopulatedContractValue contracts
+             && isPopulatedContractValue constraints
+             && isPopulatedContractValue profile
+             && isPopulatedContractValue alternatives -> true
+    | _ -> false
+
 if requiresFrozenSolution then
     match solutionState with
     | Some "FROZEN" -> ()
     | _ -> report "Review beyond NEW requires a FROZEN solution contract"
-    match chosenSolution, importantContracts, implementationConstraints, reviewProfile, implementationBaseline with
-    | Some solution, Some contracts, Some constraints, Some profile, Some baseline
-        when solution <> "TBD" && contracts <> "TBD" && constraints <> "TBD" && profile <> "TBD" && baseline <> "TBD" -> ()
+    match solutionContractFrozenAndComplete, implementationBaseline with
+    | true, Some baseline when baseline <> "TBD" -> ()
     | _ -> report "Review beyond NEW requires frozen solution details, a selected review profile, and an implementation baseline"
     match buildEvidence, testEvidence with
     | Some build, Some test when hasValidEvidence build && hasValidEvidence test -> ()
@@ -303,7 +328,9 @@ let designGateComplete =
     designGateBlock
     |> Option.map (fun block ->
         requiredDesignGateLabels |> List.forall (fun label -> hasExactCheckedCheckbox label block)
-        && allChecked block)
+        && (block |> List.filter checkboxRegex.IsMatch |> List.length) = requiredDesignGateLabels.Length
+        && allChecked block
+        && solutionContractFrozenAndComplete)
     |> Option.defaultValue false
 
 if codeTask && not hasC0 then report "code task is missing required closing step C0"
@@ -313,10 +340,19 @@ if taskKinds = [ "non-code" ] && hasC0 then report "non-code task must not conta
 if codeTask then
     match designGateBlock with
     | Some block ->
+        if (block |> List.filter checkboxRegex.IsMatch |> List.length) <> requiredDesignGateLabels.Length then
+            report "design gate must contain exactly the canonical required checkboxes"
         for requiredLabel in requiredDesignGateLabels do
-            if not (hasExactCheckbox requiredLabel block) then
-                report $"design gate is missing required checkbox: {requiredLabel}"
+            match exactCheckboxCount requiredLabel block with
+            | 0 -> report $"design gate is missing required checkbox: {requiredLabel}"
+            | 1 -> ()
+            | _ -> report $"design gate must contain exactly one required checkbox: {requiredLabel}"
     | None -> ()
+
+    match designGateBlock with
+    | Some block when allChecked block && not solutionContractFrozenAndComplete ->
+        report "completed design gate requires a FROZEN Solution Contract with populated requirements, acceptance criteria, accepted assumptions, non-goals, chosen solution, boundaries/contracts, constraints, review profile, and rejected alternatives"
+    | _ -> ()
 
     if not designGateComplete then
         for (index, line) in subtaskHeadings do

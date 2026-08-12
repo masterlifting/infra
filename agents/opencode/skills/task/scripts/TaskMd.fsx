@@ -24,8 +24,8 @@ let requiredCodeGateLabels =
       "Tester inspected existing coverage" ]
 
 let requiredDesignGateLabels =
-    [ "Design gate: language-matching architect verdict recorded"
-      "Conditional gates run (sql-reviewer for schema/migrations; security rule loaded for sensitive surfaces) or explicitly not applicable"
+    [ "Required independent architect proposals recorded and coordinator solution frozen"
+      "Conditional specialists run per `references/agent-gates.md` or explicitly N/A"
       "Set `Implementation plan` to `non-complex` or `complex`; approve the final task-specific structure with no generic planning placeholders" ]
 
 let implementationGateLabels =
@@ -40,11 +40,15 @@ let genericImplementationPlaceholder = "<!-- Add task-specific implementation an
 let solutionContractHeading = "## Solution Contract"
 let reviewHeading = "## Review"
 let solutionStatePrefix = "- State: "
+let requirementsPrefix = "- Requirements: "
+let acceptanceCriteriaPrefix = "- Acceptance criteria: "
 let acceptedAssumptionsPrefix = "- Accepted assumptions: "
+let nonGoalsPrefix = "- Non-goals: "
 let chosenSolutionPrefix = "- Chosen solution: "
 let importantContractsPrefix = "- Important boundaries/contracts: "
 let implementationConstraintsPrefix = "- Implementation constraints: "
 let reviewProfilePrefix = "- Review profile: "
+let rejectedAlternativesPrefix = "- Rejected alternatives: "
 let reviewStatePrefix = "- State: "
 let implementationBaselinePrefix = "- Implementation baseline: "
 let remediationPassPrefix = "- Remediation pass: "
@@ -308,6 +312,12 @@ let hasExactCheckbox (label: string) (block: string list) =
     block
     |> List.exists (fun line ->
         Regex.IsMatch(line, @"^\s*-\s+\[[ xX]\]\s+" + Regex.Escape label + @"\s*$"))
+
+let exactCheckboxCount (label: string) (block: string list) =
+    block
+    |> List.filter (fun line ->
+        Regex.IsMatch(line, @"^\s*-\s+\[[ xX]\]\s+" + Regex.Escape label + @"\s*$"))
+    |> List.length
 
 let hasExactCheckedCheckbox (label: string) (block: string list) =
     block
