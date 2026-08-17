@@ -1,7 +1,7 @@
 ---
-description: SQL/database engineering subagent for migrations, repositories, raw SQL, and data-access safety.
-model: openai/gpt-5.6-terra
-variant: medium
+description: SQL/database engineering subagent for migrations, repositories, raw SQL, and data-access safety; use when task evidence materially touches database schema, data, or data access.
+model: deepseek/deepseek-v4-flash
+variant: high
 mode: subagent
 steps: 30
 permission:

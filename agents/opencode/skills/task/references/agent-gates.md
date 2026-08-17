@@ -11,12 +11,12 @@ For a language without a dedicated team, assign `executor` as the editable imple
 
 | Phase | Always | Conditional (by concrete touched surface) |
 | --------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Design gate (subtask 3)     | all available language-matching architect agents; otherwise an independent `general` design review | `devops/engineer` for DevOps-only work; `database/sql-reviewer` if schema/migration planned; `security/reviewer` for sensitive surfaces |
+| Design gate (subtask 3)     | complex or architecture-sensitive: all language-matching architect agents; otherwise an independent `general` design review. Non-complex: only the minimum architecture analysis necessary, and never multiple architects merely because they exist | `devops/engineer` for DevOps-only work; `database/sql-reviewer` if schema/migration planned; `security/reviewer` for sensitive surfaces |
 | Implementation and build | language-matching engineer | database engineer for DB-heavy work; DevOps engineer for CI/deploy work |
 | Tests                       | language-matching `tester` designs, implements, and runs tests   | If no tester exists, assign test work to the implementation owner                                                                        |
 | Discovery review | Standard: reviewer 1 and reviewer 3. Full/architecture-sensitive: reviewers 1, 2, and 3 | Applicable specialist reviewers only |
 
-Both architects receive the same evidence and work independently. The coordinator chooses or subtractively synthesizes the smallest sufficient design, records requirements, acceptance criteria, assumptions, non-goals, boundaries, constraints, review profile, and relevant rejected alternatives, then freezes it.
+Complex or architecture-sensitive language tasks retain both independent architect agents and coordinator synthesis. Non-complex tasks use only the minimum architecture analysis necessary; never invoke multiple architects merely because they exist. When architects are used, both receive the same evidence and work independently. The coordinator chooses or subtractively synthesizes the smallest sufficient design, records requirements, acceptance criteria, assumptions, non-goals, boundaries, constraints, review profile, and relevant rejected alternatives, then freezes it.
 
 Architecture reopens only when the design cannot satisfy an acceptance criterion, contains a blocking correctness/security/data-integrity defect, materially misunderstands a required external contract, or is technically impossible under an approved constraint. Another valid design, style, extensibility, cleanup, or speculative optimization does not reopen it.
 

@@ -108,7 +108,9 @@ Steps:
 ### 3. Design gate
 
 Blocks implementation subtasks until the gate is clean or explicitly waived
-(see `references/agent-gates.md`).
+(see `references/agent-gates.md`). Architect delegation is proportional:
+complex or architecture-sensitive tasks use both independent architect agents;
+non-complex tasks use only the minimum architecture analysis necessary.
 
 Steps:
 

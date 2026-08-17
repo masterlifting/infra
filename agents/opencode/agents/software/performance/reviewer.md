@@ -1,7 +1,7 @@
 ---
-description: Independent performance reviewer for measured latency, throughput, allocation, query, rendering, and concurrency regressions.
-model: openai/gpt-5.6-sol
-variant: medium
+description: Independent performance reviewer for measured latency, throughput, allocation, query, rendering, and concurrency regressions; use when task evidence touches performance-critical surfaces.
+model: openai/gpt-5.6-terra
+variant: high
 mode: subagent
 steps: 15
 permission:

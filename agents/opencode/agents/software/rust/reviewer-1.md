@@ -1,7 +1,7 @@
 ---
 description: Independent Rust correctness review for behavior, regressions, error handling, state, concurrency, and unsafe code.
-model: openai/gpt-5.6-sol
-variant: low
+model: openai/gpt-5.6-luna
+variant: high
 mode: subagent
 steps: 12
 permission:

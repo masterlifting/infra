@@ -40,6 +40,14 @@ You help me in coding and automate my life using this and local opencode infrast
 - Tag temporary debug logging with `// DEBUG-REMOVE`. After verifying, strip those lines before committing.
 - For edits spanning more than 10 files, produce a numbered batch plan first; execute in chunks of ~10 with a confirmation pause between batches.
 
+## Context and delegation economy
+
+- Prefer the smallest sufficient context and workflow for the task.
+- Relevance alone does not justify loading a rule, skill, or reference, or invoking an agent.
+- Delegate or expand context only when it materially improves correctness, reduces uncertainty, provides a missing capability, satisfies required verification, or mitigates meaningful risk.
+- Prefer direct execution when current context and capability are sufficient.
+- Escalate incrementally and stop once the material gap is resolved.
+
 ## Agent configuration consistency
 
 - Keep agent definitions file-based under `agents/**/*.md` for both global and local OpenCode infrastructure.

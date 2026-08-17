@@ -1,7 +1,7 @@
 ---
-description: SQL/database review subagent for migration safety, query correctness, and data risk checks.
-model: openai/gpt-5.6-sol
-variant: medium
+description: SQL/database review subagent for migration safety, query correctness, and data risk checks; use when task evidence materially touches the database surface.
+model: openai/gpt-5.6-luna
+variant: high
 mode: subagent
 steps: 12
 permission:

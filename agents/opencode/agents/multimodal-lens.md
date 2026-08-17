@@ -1,5 +1,5 @@
 ---
-description: Primary agent for analyzing images, screenshots, scans, and visually rich PDFs. Handles all visual file recognition directly.
+description: Primary agent for analyzing images, screenshots, scans, and visually rich PDFs. Handles all visual file recognition directly; use only when visual content recognition is required, not for text-only files.
 model: openai/gpt-5.6-terra
 variant: medium
 mode: subagent

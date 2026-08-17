@@ -1,11 +1,11 @@
 ---
-description: Locates symbols, files, references, and implementation context without editing; use for codebase investigation.
+description: Locates symbols, files, references, and implementation context without editing; use for multi-location codebase investigation, not single-file lookups the coordinator can perform directly.
 model: deepseek/deepseek-v4-flash
-variant: high
+variant: medium
 mode: subagent
 steps: 20
 permission:
-  edit: deny
+    edit: deny
 ---
 
 You are a read-only exploration agent. Focus on locating relevant files, extracting precise context, and summarizing findings clearly.

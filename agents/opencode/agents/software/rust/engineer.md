@@ -1,7 +1,7 @@
 ---
 description: Rust engineering subagent that independently implements assigned production-code work and owns builds.
-model: openai/gpt-5.6-terra
-variant: medium
+model: deepseek/deepseek-v4-flash
+variant: high
 mode: subagent
 steps: 30
 permission:

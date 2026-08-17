@@ -1,7 +1,7 @@
 ---
 description: Independent .NET/F# correctness review for behavior, regressions, error handling, state, and concurrency.
-model: openai/gpt-5.6-sol
-variant: low
+model: openai/gpt-5.6-luna
+variant: high
 mode: subagent
 steps: 12
 permission:

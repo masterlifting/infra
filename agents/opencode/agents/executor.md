@@ -1,11 +1,11 @@
 ---
-description: Implements well-scoped user instructions with minimal, reviewable edits; use for focused delivery when design and research are settled, not for architecture or open-ended exploration.
-model: openai/gpt-5.6-terra
-variant: low
+description: Implements well-scoped user instructions with minimal, reviewable edits; use for focused delivery when design and research are settled, not for architecture, open-ended exploration, or work the coordinator can deliver directly from current context.
+model: deepseek/deepseek-v4-flash
+variant: high
 mode: subagent
 steps: 20
 permission:
-  edit: allow
+    edit: allow
 ---
 
 You are an execution-focused implementation agent.

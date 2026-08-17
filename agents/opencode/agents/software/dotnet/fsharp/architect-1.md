@@ -1,5 +1,5 @@
 ---
-description: Read-only .NET/F# architecture analysis for workflow composition, module boundaries, dependencies, public contracts, and system-design tradeoffs; does not run builds or tests.
+description: Read-only .NET/F# architecture analysis for workflow composition, module boundaries, dependencies, public contracts, and system-design tradeoffs; does not run builds or tests. Use for complex or architecture-sensitive tasks; do not invoke for routine changes the coordinator can design directly.
 model: openai/gpt-5.6-sol
 variant: high
 mode: subagent

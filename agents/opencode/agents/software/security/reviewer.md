@@ -1,7 +1,7 @@
 ---
-description: Independent security reviewer for authentication, authorization, secrets, trust boundaries, untrusted input, and sensitive data changes.
-model: openai/gpt-5.6-sol
-variant: medium
+description: Independent security reviewer for authentication, authorization, secrets, trust boundaries, untrusted input, and sensitive data changes; use when task evidence touches security-sensitive surfaces.
+model: openai/gpt-5.6-terra
+variant: high
 mode: subagent
 steps: 15
 permission:

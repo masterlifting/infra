@@ -1,7 +1,7 @@
 ---
-description: Independent DevOps reviewer for CI/CD, infrastructure, and deployment-safety changes.
-model: openai/gpt-5.6-sol
-variant: medium
+description: Independent DevOps reviewer for CI/CD, infrastructure, and deployment-safety changes; use when task evidence materially touches those surfaces.
+model: openai/gpt-5.6-luna
+variant: high
 mode: subagent
 steps: 12
 permission:

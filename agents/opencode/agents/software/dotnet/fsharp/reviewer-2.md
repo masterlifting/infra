@@ -1,6 +1,6 @@
 ---
 description: Independent .NET/F# architecture-conformity review for boundaries, dependencies, maintainability, and complexity.
-model: deepseek/deepseek-v4-pro
+model: moonshotai/kimi-k3
 variant: high
 mode: subagent
 steps: 12

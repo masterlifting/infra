@@ -1,6 +1,6 @@
 ---
-description: Audits OpenCode infrastructure including configuration, agents, commands, skills, rules, scripts, plugins, MCPs, and project .opencode files.
-model: openai/gpt-5.6-sol
+description: Audits OpenCode infrastructure including configuration, agents, commands, skills, rules, scripts, plugins, MCPs, and project .opencode files; use for infrastructure-wide audits, not product-code work.
+model: openai/gpt-5.6-luna
 variant: medium
 mode: subagent
 steps: 30

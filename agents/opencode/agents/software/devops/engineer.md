@@ -1,7 +1,7 @@
 ---
-description: DevOps engineering subagent for CI/CD, infrastructure, deployment safety, and operational reliability.
-model: openai/gpt-5.6-terra
-variant: medium
+description: DevOps engineering subagent for CI/CD, infrastructure, deployment safety, and operational reliability; use when task evidence materially touches CI/CD, infrastructure, or deployment.
+model: deepseek/deepseek-v4-flash
+variant: high
 mode: subagent
 steps: 30
 ---
