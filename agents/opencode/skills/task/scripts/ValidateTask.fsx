@@ -602,6 +602,53 @@ match contextIdx with
 | None -> report "missing ## Context section"
 if not repoFound then report "## Context > Target repo(s) lists no repos"
 
+// Optional behavioral specification — `## References` marker (references/behavioral-spec.md).
+// Absent marker = always valid. The placeholder form `(optional) <path>` — where <path> is
+// the literal `.tasks/{TASK-ID}/SPEC.md` template form or this task's canonical
+// `.tasks/<TASK-ID>/SPEC.md` (backticks tolerated, as generated from the template) — is
+// allowed without a real file; a concrete `.tasks/<TASK-ID>/SPEC.md` reference must exist
+// and contain at least one `## Requirement:` heading outside fenced code blocks.
+let behavioralSpecTemplatePlaceholder = "(optional) .tasks/{TASK-ID}/SPEC.md"
+let specMarkers = markerValues behavioralSpecReferencePrefix (sectionLines "## References" lines)
+
+if specMarkers.Length > 1 then
+    for (index, _) in specMarkers do
+        report $"line {index + 1}: behavioral specification marker must appear at most once in ## References"
+else
+    match specMarkers with
+    | [ (index, value) ] ->
+        let normalized =
+            value.Replace("`", "").Trim().Replace("\\", "/")
+            |> fun candidate ->
+                if candidate.StartsWith("./", StringComparison.Ordinal) then candidate.Substring 2
+                else candidate
+
+        match tryResolveSpecPath (Directory.GetCurrentDirectory()) path with
+        | Error message -> report $"line {index + 1}: {message}"
+        | Ok specPath ->
+            let expected = Path.GetRelativePath(Directory.GetCurrentDirectory(), specPath).Replace("\\", "/")
+
+            // Placeholder: `(optional)` + the template literal or this task's canonical SPEC path.
+            if normalized = behavioralSpecTemplatePlaceholder
+               || normalized.Equals("(optional) " + expected, StringComparison.OrdinalIgnoreCase) then
+                ()
+            elif not (normalized.Equals(expected, StringComparison.OrdinalIgnoreCase)) then
+                report $"line {index + 1}: behavioral specification reference must be the placeholder '(optional) .tasks/{{TASK-ID}}/SPEC.md' (or '(optional) {expected}') or exactly '{expected}'"
+            elif not (File.Exists specPath) then
+                report $"line {index + 1}: spec-missing: referenced behavioral specification does not exist: {expected}"
+            else
+                let specLines = ResizeArray(File.ReadAllLines specPath)
+                let specContent = contentLineIndexes specLines
+                let hasRequirementHeading =
+                    specLines
+                    |> Seq.mapi (fun i line -> i, line)
+                    |> Seq.exists (fun (i, line) ->
+                        specContent.Contains i && Regex.IsMatch(line.Trim(), @"^## Requirement:"))
+
+                if not hasRequirementHeading then
+                    report $"line {index + 1}: spec-structure: behavioral specification must contain at least one '## Requirement:' heading outside fenced code blocks"
+    | _ -> ()
+
 // Write fixes
 if fix && violations.Count > 0 then
     match tryWriteAllLinesIfUnchanged path raw lines with

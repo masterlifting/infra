@@ -17,6 +17,7 @@ Mission:
 
 Operating rules:
 
+- Load and follow `@C:/Users/andre/.config/opencode/rules/software/agent-handoff.md` for the coordinator handoff input/output contract.
 - Build just enough context from the repository to implement correctly.
 - Prefer minimal, reviewable changes that follow existing patterns.
 - When editing source or test code, load and follow `@C:/Users/andre/.config/opencode/rules/software/comments.md`.

@@ -1,6 +1,7 @@
 #load "TaskMd.fsx"
 
 open System
+open System.IO
 open TaskMd
 
 let assertEqual name expected actual =
@@ -112,5 +113,34 @@ let receiptRows = tableRows verificationReceiptsHeading reviewSection
 assertEqual "solution contract marker is isolated from review state" [ (1, "DRAFT") ] solutionMarkers
 assertEqual "accepted finding rows exclude markdown table metadata" [ (16, [ "FIND-1"; "Durable contract"; "FIXED" ]) ] findingRows
 assertEqual "verification receipt rows exclude markdown table metadata" [ (20, [ "FIND-1"; "FIXED"; "TaskWorkflowTests" ]) ] receiptRows
+
+// Optional behavioral specification: SPEC.md path resolution must stay strictly
+// under .tasks/<TASK-ID>/SPEC.md relative to root, reject task files outside the
+// canonical pattern, and reject missing task files.
+let specFixtureRoot = Path.Combine(Path.GetTempPath(), "opencode", $"taskmd-spec-tests-{Guid.NewGuid():N}")
+try
+    let specTaskDirectory = Path.Combine(specFixtureRoot, ".tasks", "TASK-201")
+    Directory.CreateDirectory specTaskDirectory |> ignore
+    let specTaskFile = Path.Combine(specTaskDirectory, "TASK.md")
+    File.WriteAllText(specTaskFile, "# TASK-201 - Fixture")
+
+    let expectedSpecPath = Path.Combine(specTaskDirectory, "SPEC.md")
+    match tryResolveSpecPath specFixtureRoot specTaskFile with
+    | Ok resolved when String.Equals(resolved, expectedSpecPath, StringComparison.OrdinalIgnoreCase) -> ()
+    | Ok resolved -> failwithf "spec path resolution returned %s, expected %s" resolved expectedSpecPath
+    | Error message -> failwithf "spec path resolution failed: %s" message
+
+    let strayTaskFile = Path.Combine(specFixtureRoot, "TASK.md")
+    File.WriteAllText(strayTaskFile, "# TASK-201 - Fixture")
+    match tryResolveSpecPath specFixtureRoot strayTaskFile with
+    | Error _ -> ()
+    | Ok _ -> failwith "spec path resolution accepted a task file outside .tasks/<TASK-ID>/TASK.md"
+
+    File.Delete specTaskFile
+    match tryResolveSpecPath specFixtureRoot specTaskFile with
+    | Error _ -> ()
+    | Ok _ -> failwith "spec path resolution accepted a missing task file"
+finally
+    if Directory.Exists specFixtureRoot then Directory.Delete(specFixtureRoot, true)
 
 printfn "OK task markdown lifecycle parsing and ID validation"

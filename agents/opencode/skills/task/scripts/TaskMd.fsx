@@ -34,6 +34,7 @@ let implementationGateLabels =
 
 let validationGateLabels = [ requiredCodeGateLabels.[2] ]
 let implementationPlanPrefix = "- Implementation plan: "
+let behavioralSpecReferencePrefix = "- Behavioral specification: "
 let validImplementationPlans = Set.ofList [ "TBD"; "non-complex"; "complex" ]
 let genericImplementationHeading = "### 5. Implement and validate"
 let genericImplementationPlaceholder = "<!-- Add task-specific implementation and validation steps here for a non-complex task. -->"
@@ -132,6 +133,46 @@ let tryResolveTaskPath (root: string) (path: string) =
             else Ok fullPath
     with ex ->
         Error $"invalid task file path: {ex.Message}"
+
+/// Resolve the optional `.tasks/<TASK-ID>/SPEC.md` that a TASK.md references.
+/// Mirrors tryResolveTaskPath's safety checks: the spec must sit strictly under
+/// `.tasks/<TASK-ID>/SPEC.md` relative to root, must not be or traverse a reparse
+/// point, and must not escape the root or mismatch the task folder. The file itself
+/// may be absent — callers decide how to report a missing spec.
+let tryResolveSpecPath (root: string) (taskFilePath: string) =
+    try
+        let fullRoot = DirectoryInfo(Path.GetFullPath root).FullName
+        let fullTaskPath = Path.GetFullPath taskFilePath
+        let specPath = Path.Combine(Path.GetDirectoryName fullTaskPath, "SPEC.md")
+        let relative = Path.GetRelativePath(fullRoot, specPath).Replace("\\", "/")
+        let comparison = if OperatingSystem.IsWindows() then StringComparison.OrdinalIgnoreCase else StringComparison.Ordinal
+
+        if not (Directory.Exists fullRoot) then
+            Error $"project root does not exist: {fullRoot}"
+        elif not (File.Exists fullTaskPath) then
+            Error $"task file does not exist: {fullTaskPath}"
+        elif not (Regex.IsMatch(Path.GetRelativePath(fullRoot, fullTaskPath).Replace("\\", "/"), @"^\.tasks/[^/]+/TASK\.md$", RegexOptions.IgnoreCase)) then
+            Error "task file must match .tasks/<TASK-ID>/TASK.md under the active project root"
+        elif Path.IsPathRooted relative || relative = ".." || relative.StartsWith("../", StringComparison.Ordinal) then
+            Error "SPEC.md must be contained by the active project root"
+        elif not (Regex.IsMatch(relative, @"^\.tasks/[^/]+/SPEC\.md$", RegexOptions.IgnoreCase)) then
+            Error "SPEC.md must match .tasks/<TASK-ID>/SPEC.md under the active project root"
+        else
+            let mutable directory = FileInfo(specPath).Directory
+            let mutable reparsePoint = false
+
+            while not (isNull directory) && not (directory.FullName.Equals(fullRoot, comparison)) do
+                if directory.Attributes.HasFlag FileAttributes.ReparsePoint then
+                    reparsePoint <- true
+                directory <- directory.Parent
+
+            if isNull directory then Error "SPEC.md escaped the active project root"
+            elif reparsePoint then Error "SPEC.md path must not traverse a reparse point"
+            elif File.Exists specPath && FileInfo(specPath).Attributes.HasFlag FileAttributes.ReparsePoint then
+                Error "SPEC.md must not be a reparse point"
+            else Ok specPath
+    with ex ->
+        Error $"invalid SPEC.md path: {ex.Message}"
 
 /// Line indexes outside fenced Markdown code blocks.
 let contentLineIndexes (lines: ResizeArray<string>) =

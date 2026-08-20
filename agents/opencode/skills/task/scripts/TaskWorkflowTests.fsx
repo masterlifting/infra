@@ -751,6 +751,121 @@ try
     | Ok () -> failwith "stale write unexpectedly replaced a newer edit"
     | Error _ -> assertTrue "newer edit was not preserved" (File.ReadAllText(stalePath).Contains "manual edit")
 
+    // Optional behavioral specification — `## References` marker (references/behavioral-spec.md).
+    // Contract: no marker or the exact placeholder `(optional) .tasks/{TASK-ID}/SPEC.md` is always
+    // valid; a concrete `.tasks/<TASK-ID>/SPEC.md` marker requires the file to exist (spec-missing)
+    // and contain at least one `## Requirement:` heading outside fenced code blocks (spec-structure);
+    // duplicate markers and wrong/escaping paths are errors. All SPEC fixtures live under the temp
+    // fixture root and are deleted here and by the outer finally.
+    let behavioralSpecFixtureDir = Path.Combine(fixtureRoot, ".tasks", "TASK-103")
+    Directory.CreateDirectory behavioralSpecFixtureDir |> ignore
+    let behavioralSpecTaskPath = Path.Combine(behavioralSpecFixtureDir, "TASK.md")
+    let behavioralSpecPath = Path.Combine(behavioralSpecFixtureDir, "SPEC.md")
+    let expectedSpecReference = ".tasks/TASK-103/SPEC.md"
+
+    let replaceSpecMarker (replacement: string) (text: string) =
+        let pattern = $@"(?m)^{Regex.Escape behavioralSpecReferencePrefix}.*\r?\n?"
+        if not (Regex.IsMatch(text, pattern)) then
+            failwithf "fixture marker missing: %s" behavioralSpecReferencePrefix
+        if String.IsNullOrEmpty replacement then Regex.Replace(text, pattern, "")
+        else Regex.Replace(text, pattern, replacement + Environment.NewLine)
+
+    let withSpecMarker (taskId: string) (marker: string) (text: string) =
+        text
+        |> replaceRequired "# TASK-102 - Code task" $"# {taskId} - Behavioral specification fixture"
+        |> replaceSpecMarker marker
+        |> synchronizeProgress
+
+    let noMarkerTask = withSpecMarker "TASK-103" "" codeText
+    File.WriteAllText(behavioralSpecTaskPath, noMarkerTask)
+    let noMarkerValidation = runFsi fixtureRoot validateScript [ behavioralSpecTaskPath ]
+    assertTrue ("task without a behavioral specification marker is invalid: " + noMarkerValidation.Output) (noMarkerValidation.ExitCode = 0)
+
+    let placeholderTask = withSpecMarker "TASK-103" "- Behavioral specification: (optional) .tasks/{TASK-ID}/SPEC.md" codeText
+    File.WriteAllText(behavioralSpecTaskPath, placeholderTask)
+    let placeholderValidation = runFsi fixtureRoot validateScript [ behavioralSpecTaskPath ]
+    assertTrue ("task with the exact behavioral specification placeholder is invalid: " + placeholderValidation.Output) (placeholderValidation.ExitCode = 0)
+
+    let concreteMarkerTask = withSpecMarker "TASK-103" $"- Behavioral specification: {expectedSpecReference}" codeText
+    if File.Exists behavioralSpecPath then File.Delete behavioralSpecPath
+    File.WriteAllText(behavioralSpecTaskPath, concreteMarkerTask)
+    let missingSpecValidation = runFsi fixtureRoot validateScript [ behavioralSpecTaskPath ]
+    assertTrue "concrete behavioral specification marker without SPEC.md was accepted" (missingSpecValidation.ExitCode <> 0)
+    assertContains "missing SPEC.md diagnostic" "spec-missing" missingSpecValidation.Output
+
+    let validSpec =
+        "# Behavioral Specification" + Environment.NewLine
+        + Environment.NewLine
+        + "## Requirement: R1" + Environment.NewLine
+        + Environment.NewLine
+        + "The system MUST expose the behavior." + Environment.NewLine
+        + Environment.NewLine
+        + "### Scenario: happy path" + Environment.NewLine
+        + Environment.NewLine
+        + "Given a user" + Environment.NewLine
+        + "When they act" + Environment.NewLine
+        + "Then they observe the behavior."
+    File.WriteAllText(behavioralSpecPath, validSpec)
+    File.WriteAllText(behavioralSpecTaskPath, concreteMarkerTask)
+    let validSpecValidation = runFsi fixtureRoot validateScript [ behavioralSpecTaskPath ]
+    assertTrue ("concrete marker with a valid SPEC.md is rejected: " + validSpecValidation.Output) (validSpecValidation.ExitCode = 0)
+
+    let backtickedMarkerTask = withSpecMarker "TASK-103" $"- Behavioral specification: `{expectedSpecReference}`" codeText
+    File.WriteAllText(behavioralSpecTaskPath, backtickedMarkerTask)
+    let backtickedMarkerValidation = runFsi fixtureRoot validateScript [ behavioralSpecTaskPath ]
+    assertTrue ("backticked concrete marker with a valid SPEC.md is rejected: " + backtickedMarkerValidation.Output) (backtickedMarkerValidation.ExitCode = 0)
+
+    let fencedOnlySpec =
+        "# Behavioral Specification" + Environment.NewLine
+        + Environment.NewLine
+        + "```markdown" + Environment.NewLine
+        + "## Requirement: Hidden inside a fence" + Environment.NewLine
+        + "```" + Environment.NewLine
+        + Environment.NewLine
+        + "No normative requirements outside fenced blocks."
+    File.WriteAllText(behavioralSpecPath, fencedOnlySpec)
+    File.WriteAllText(behavioralSpecTaskPath, concreteMarkerTask)
+    let fencedOnlyValidation = runFsi fixtureRoot validateScript [ behavioralSpecTaskPath ]
+    assertTrue "SPEC.md with requirements only inside fenced blocks was accepted" (fencedOnlyValidation.ExitCode <> 0)
+    assertContains "fenced-only SPEC.md diagnostic" "spec-structure" fencedOnlyValidation.Output
+
+    let duplicateMarkersTask =
+        withSpecMarker "TASK-103" $"- Behavioral specification: {expectedSpecReference}" codeText
+        |> fun text ->
+            text.Replace(
+                $"- Behavioral specification: {expectedSpecReference}",
+                $"- Behavioral specification: {expectedSpecReference}" + Environment.NewLine + "- Behavioral specification: (optional) .tasks/{TASK-ID}/SPEC.md",
+                StringComparison.Ordinal)
+        |> synchronizeProgress
+    File.WriteAllText(behavioralSpecTaskPath, duplicateMarkersTask)
+    let duplicateMarkersValidation = runFsi fixtureRoot validateScript [ behavioralSpecTaskPath ]
+    assertTrue "duplicate behavioral specification markers were accepted" (duplicateMarkersValidation.ExitCode <> 0)
+    assertContains "duplicate markers diagnostic" "behavioral specification marker must appear at most once in ## References" duplicateMarkersValidation.Output
+
+    let wrongPathTask = withSpecMarker "TASK-103" "- Behavioral specification: .tasks/OTHER-TASK/SPEC.md" codeText
+    File.WriteAllText(behavioralSpecTaskPath, wrongPathTask)
+    let wrongPathValidation = runFsi fixtureRoot validateScript [ behavioralSpecTaskPath ]
+    assertTrue "behavioral specification marker pointing at another task was accepted" (wrongPathValidation.ExitCode <> 0)
+    assertContains "wrong-path diagnostic" "must be the placeholder" wrongPathValidation.Output
+
+    let escapingPathTask = withSpecMarker "TASK-103" "- Behavioral specification: ../escaped/SPEC.md" codeText
+    File.WriteAllText(behavioralSpecTaskPath, escapingPathTask)
+    let escapingPathValidation = runFsi fixtureRoot validateScript [ behavioralSpecTaskPath ]
+    assertTrue "behavioral specification marker escaping the task directory was accepted" (escapingPathValidation.ExitCode <> 0)
+    assertContains "escaping-path diagnostic" "must be the placeholder" escapingPathValidation.Output
+
+    let taskTemplatePath = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, "..", "references", "template.md"))
+    let taskTemplate = File.ReadAllText taskTemplatePath
+    assertTrue "task template dropped the optional behavioral specification reference" (taskTemplate.Contains "- Behavioral specification: (optional)" && taskTemplate.Contains "{TASK-ID}/SPEC.md")
+    assertTrue "generated code task dropped the optional behavioral specification reference" (codeText.Contains "- Behavioral specification: (optional)")
+    assertTrue "generated non-code task dropped the optional behavioral specification reference" (nonCodeText.Contains "- Behavioral specification: (optional)")
+
+    if File.Exists behavioralSpecTaskPath then File.Delete behavioralSpecTaskPath
+    if File.Exists behavioralSpecPath then File.Delete behavioralSpecPath
+    if Directory.Exists behavioralSpecFixtureDir then Directory.Delete behavioralSpecFixtureDir
+
+    printfn "OK optional behavioral specification validation"
+
     printfn "OK task creation, validation, and stale-write safety"
 finally
     if Directory.Exists fixtureRoot then Directory.Delete(fixtureRoot, true)

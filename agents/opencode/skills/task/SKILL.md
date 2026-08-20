@@ -17,6 +17,7 @@ Track project `.tasks/` items with a resumable, gated workflow. Task files live 
 - `C:/Users/andre/.config/opencode/skills/task/references/agent-gates.md` — software-agent ownership, review profiles, and bounded review state machine
 - `C:/Users/andre/.config/opencode/skills/task/references/confirmation-policy.md` — tiered confirmation: when to confirm vs. auto-proceed
 - `C:/Users/andre/.config/opencode/skills/task/references/clarification.md` — clarification procedure: gate questions from research before implementation
+- `C:/Users/andre/.config/opencode/skills/task/references/behavioral-spec.md` — optional behavioral specification convention for requirements-heavy tasks (load when deciding whether to create `.tasks/{TASK-ID}/SPEC.md`)
 
 ## Guardrails
 
@@ -31,6 +32,7 @@ Track project `.tasks/` items with a resumable, gated workflow. Task files live 
 
 1. **Ask for the task ID** if creating a new task and the user hasn't provided one.
 2. **Generate from template** - read `references/template.md`, apply its drop rules, and create `.tasks/{TASK-ID}/TASK.md` through `scripts/CreateTask.fsx <TASK-ID> <title> [--non-code] [--no-commit]`. Never overwrite an existing task; route it to resume. Create `docs/` by default; add `imgs/`/`scripts/` only when required.
+3. **Create an optional behavioral specification** - only when the task materially involves user-facing behavior, business rules, public/API contracts, state transitions, or important edge cases, create `.tasks/{TASK-ID}/SPEC.md` per `references/behavioral-spec.md` and reference it from the task's `## References`. Never require `SPEC.md` for ordinary tasks.
 3. **Clarify before implementing** — classify uncertainty per `references/clarification.md`; interrupt only for `BLOCKING` questions and record accepted assumptions.
 4. **Prepare code-task implementation during subtasks 1-3** — draft and classify the task-specific implementation and validation work during research, refine it after clarification, and finalize it through the design gate. Set `Implementation plan` in `## Context` to `non-complex` or `complex`. A task is complex when one implementation-and-validation cycle would hide independent slices, ordering, ownership, or materially different components or repositories. For a complex task, replace the generic subtask 5 with numbered `Implement: ...` and `Validate: ...` subtasks starting at 5. For a non-complex task, retain subtask 5 and add the task-specific implementation and validation steps inside it. Do not begin implementation or complete the design gate while `Implementation plan` is `TBD` or generic planning placeholders remain.
 5. **Enforce agent gates** - `references/agent-gates.md` is the canonical software orchestration procedure. Freeze one solution after independent architecture proposals, then run implementation, build, tests, one Discovery review, triage, bounded remediation, and targeted Verification. Preserve required gate checkboxes when refining or replacing subtask 5.

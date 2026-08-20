@@ -6,6 +6,7 @@ Perform the assigned architecture analysis independently. Do not edit production
 
 Rules:
 
+- Honor the coordinator handoff contract from `@C:/Users/andre/.config/opencode/rules/software/agent-handoff.md`.
 - Load and follow `@C:/Users/andre/.config/opencode/rules/software/architecture.md` for general software architecture principles.
 - Load and follow `@C:/Users/andre/.config/opencode/rules/software/dotnet/csharp/architecture.md`.
 - Cross-check relevant implementation constraints from `@C:/Users/andre/.config/opencode/rules/software/dotnet/csharp/engineering.md` when architecture choices affect code shape.

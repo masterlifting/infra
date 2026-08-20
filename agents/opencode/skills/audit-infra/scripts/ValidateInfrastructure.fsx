@@ -784,7 +784,8 @@ let taskTemplateMarkers =
       "Run the one Discovery selected by `references/agent-gates.md`"
       "build and test evidence is recorded"
       "returns `BLOCKED`"
-      "Targeted Verification receipts recorded" ]
+      "Targeted Verification receipts recorded"
+      "- Behavioral specification: (optional) `.tasks/{TASK-ID}/SPEC.md`" ]
 
 requireMarkers "task-template-drift" "skills/task/references/template.md" taskTemplateMarkers
 
@@ -796,6 +797,7 @@ requireMarkers
       "solutionContractHeading"
       "reviewHeading"
       "validReviewStates"
+      "behavioralSpecReferencePrefix"
       "Required independent architect proposals recorded and coordinator solution frozen"
       "Engineer-owned implementation completed"
       "Tester inspected existing coverage"

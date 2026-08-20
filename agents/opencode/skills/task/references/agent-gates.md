@@ -2,6 +2,8 @@
 
 Canonical software-agent orchestration for code tasks. Gates are enforced through durable `TASK.md` state and checkboxes.
 
+Coordinator-to-subagent handoffs follow `@C:/Users/andre/.config/opencode/rules/software/agent-handoff.md`; do not duplicate its contract here.
+
 Language match: pick the team under `agents/software/` that matches the touched code - `dotnet/csharp`, `dotnet/fsharp`, or `rust`.
 The engineer owns production implementation and builds. The tester owns test analysis, implementation, and execution. The primary coordinator owns synthesis, triage, state transitions, and completion. Review is a single post-evidence Discovery activity, not a routine implementation gate.
 Use database, DevOps, security, or performance specialists only when concrete task or diff evidence materially affects their owned surface.
@@ -36,3 +38,11 @@ Reviewers receive the same frozen solution, implementation baseline, and build/t
 - Applying findings follows `references/confirmation-policy.md`.
 - Non-code tasks (pure analysis, docs-only): drop software-agent gates at template generation.
 - Run independently approved gate agents in parallel when possible.
+
+## Worktree policy
+
+Use separate worktrees only when multiple editable agents may modify the same
+repository/tree concurrently or when isolation is explicitly required;
+otherwise use one coordinator-owned tree. Worktree creation, switching,
+cleanup, and branch publication remain confirmation-gated. Worktree automation
+is out of scope; this is a documented conditional rule, not an automated flow.

@@ -8,6 +8,7 @@ Drop rules at generation time:
 - `C1` (cleanup) always applies.
 - Drop `C2` when the task does not require a commit or review artifact.
 - Every verification step must state an observable completion criterion and must not contradict `## Non-Goals`.
+- A behavioral specification (`.tasks/{TASK-ID}/SPEC.md`) is optional and never required for ordinary tasks. Create it only when the task materially involves user-facing behavior, business rules, public/API contracts, state transitions, or important edge cases (see `references/behavioral-spec.md`).
 
 ```markdown
 # TASK-ID - Task Title
@@ -74,6 +75,7 @@ Drop rules at generation time:
 - Ticket/spec: (link, if applicable)
 - Notion/Drive/GitHub: (link, if applicable)
 - Analysis docs: `.tasks/{TASK-ID}/docs/...`
+- Behavioral specification: (optional) `.tasks/{TASK-ID}/SPEC.md`
 
 ## Subtasks
 
