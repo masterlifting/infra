@@ -138,63 +138,69 @@ let missingInRootTargets candidateRoot exists arguments =
             else Path.GetFullPath(Path.Combine(candidateRoot, target))
         isWithinRoot candidateRoot fullTarget && not (exists fullTarget))
 
-let requiredScripts =
-    [ "validate:infra"
-      "test:safety"
-      "test:task"
-      "test:plugins"
-      "test:firefox"
-      "test:telegram"
-      "test:infra" ]
-
 let scriptHas (command: string) (fragment: string) = command.IndexOf(fragment, StringComparison.Ordinal) >= 0
 
-let validatePackageScripts (scripts: JsonElement) =
-    let getScript name =
-        tryProperty name scripts
-        |> Option.filter (fun value -> value.ValueKind = JsonValueKind.String)
-        |> Option.map (fun value -> value.GetString())
+let testEntryPointPath = Path.Combine(root, "skills", "audit-infra", "scripts", "TestInfrastructure.fsx")
+let testEntryPointRelative = relativePath testEntryPointPath
 
-    for name in requiredScripts do
-        if getScript name |> Option.isNone then
-            error "package-script" "package.json" $"Missing required npm script '{name}'"
+// Fixed step commands are triple-quoted F# string literals in the entry
+// point; extract them verbatim to verify the canonical targets.
+let testCommandRegex = Regex("\"\"\"(?<command>.*?)\"\"\"", RegexOptions.Singleline)
 
-    match getScript "validate:infra" with
-    | Some command ->
-        let validator = "skills/audit-infra/scripts/ValidateInfrastructure.fsx"
-        if not (scriptHas command "--self-test" && Regex.Matches(command, Regex.Escape validator).Count >= 2) then
-            error "package-script" "package.json" "validate:infra must self-test before live validation"
-    | None -> ()
+let entryPointCommands () =
+    if not (File.Exists testEntryPointPath) then
+        []
+    else
+        File.ReadAllText testEntryPointPath
+        |> fun content ->
+            testCommandRegex.Matches content
+            |> Seq.cast<Match>
+            |> Seq.map (fun matched -> matched.Groups.["command"].Value)
+            |> Seq.toList
 
-    match getScript "test:infra" with
-    | Some command ->
-        for name in [ "validate:infra"; "test:safety"; "test:task"; "test:plugins"; "test:firefox"; "test:telegram" ] do
-            if not (scriptHas command name) then
-                error "package-script" "package.json" $"test:infra must invoke '{name}'"
-    | None -> ()
+let validateTestEntryPoint () =
+    if not (File.Exists testEntryPointPath) then
+        error "test-entry-point" testEntryPointRelative "F# test entry point does not exist"
+    else
+        let commands = entryPointCommands ()
+        let commandHas (fragment: string) = commands |> List.exists (fun command -> scriptHas command fragment)
 
-    let requireScriptShape name expected =
-        match getScript name with
-        | Some command when scriptHas command expected -> ()
-        | Some _ -> error "package-script" "package.json" $"{name} must include '{expected}'"
-        | None -> ()
+        for command in commands do
+            checkCommandTargets testEntryPointRelative command
 
-    requireScriptShape "test:firefox" "cargo test -q --manifest-path mcp/firefox/Cargo.toml"
-    requireScriptShape "test:telegram" "uv --directory mcp/telegram run python -m pytest -q"
+        let validationCommands =
+            commands
+            |> List.filter (fun command -> scriptHas command "ValidateInfrastructure.fsx")
 
-    match getScript "test:plugins" with
-    | Some command ->
+        if validationCommands.Length < 2 then
+            error "test-entry-point" testEntryPointRelative "Entry point must run infrastructure validation self-test and live validation"
+        elif not (scriptHas validationCommands.Head "--self-test") then
+            error "test-entry-point" testEntryPointRelative "Infrastructure validation self-test must precede live validation"
+
+        let requiredTargets =
+            [ "dotnet fsi skills/task/scripts/TaskMdTests.fsx"
+              "dotnet fsi skills/task/scripts/TaskWorkflowTests.fsx"
+              "node lib/task-progress-core.test.mjs"
+              "node lib/destructive-patterns.test.mjs"
+              "node --check plugins/block-destructive.js"
+              "node --check plugins/compaction-context.js"
+              "node --check plugins/task-progress.js"
+              "cargo test -q --manifest-path mcp/firefox/Cargo.toml"
+              "uv --directory mcp/telegram run python -m pytest -q" ]
+
+        for target in requiredTargets do
+            if not (commandHas target) then
+                error "test-entry-point" testEntryPointRelative $"Entry point is missing fixed target '{target}'"
+
         let pluginsRoot = Path.Combine(root, "plugins")
         if Directory.Exists pluginsRoot then
             for plugin in Directory.EnumerateFiles(pluginsRoot, "*.js", SearchOption.TopDirectoryOnly) do
                 let target = relativePath plugin
-                if not (scriptHas command $"node --check {target}") then
-                    error "package-script" "package.json" $"test:plugins must check '{target}'"
-    | None -> ()
+                if not (commandHas $"node --check {target}") then
+                    error "test-entry-point" testEntryPointRelative $"Entry point must check '{target}' syntax with node --check"
 
-    for script in scripts.EnumerateObject() do
-        if script.Value.ValueKind = JsonValueKind.String then
-            checkCommandTargets "package.json" (script.Value.GetString())
+        if not (Directory.Exists(Path.Combine(root, "mcp", "telegram"))) then
+            error "test-entry-point" testEntryPointRelative "Entry point pytest target directory mcp/telegram does not exist"
 
 let envReference = Regex(@"^\{env:[A-Za-z_][A-Za-z0-9_]*\}$")
 
@@ -220,9 +226,31 @@ let permissionPatternAction config key pattern expected =
     |> Option.exists (fun value -> value.GetString() = expected)
 
 let officeDocumentsFsiPattern = "dotnet fsi \"C:/Users/andre/.config/opencode/skills/office-documents/scripts/*"
+let auditValidationFsiPattern = "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit-infra/scripts/ValidateInfrastructure.fsx*"
+let auditTestFsiPattern = "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit-infra/scripts/TestInfrastructure.fsx*"
+
+let requiredReadDenies =
+    [ "**/.env"
+      "**/auth.json"
+      "**/credentials.json"
+      "**/secrets.json"
+      "**/token.json"
+      "**/id_rsa"
+      "**/Mozilla/Firefox/Profiles/**/logins.json"
+      "**/Mozilla/Firefox/Profiles/**/key4.db"
+      "**/Mozilla/Firefox/Profiles/**/cookies.sqlite"
+      "**/Google/Chrome/User Data/**/Login Data"
+      "**/Google/Chrome/User Data/**/Cookies"
+      "**/Microsoft/Edge/User Data/**/Login Data"
+      "**/Microsoft/Edge/User Data/**/Cookies"
+      "**/BraveSoftware/Brave-Browser/User Data/**/Login Data"
+      "**/BraveSoftware/Brave-Browser/User Data/**/Cookies"
+      "**/Opera Software/Opera Stable/**/Login Data"
+      "**/Opera Software/Opera Stable/**/Cookies"
+      "**/Vivaldi/User Data/**/Login Data"
+      "**/Vivaldi/User Data/**/Cookies" ]
 
 let validatePermissionMarkers config =
-    let requiredReadDenies = [ "**/.env"; "**/auth.json"; "**/credentials.json"; "**/secrets.json"; "**/token.json"; "**/id_rsa"; "**/cookies.sqlite" ]
     for marker in requiredReadDenies do
         if not (permissionPatternAction config "read" marker "deny") then
             error "secret-read-marker" "opencode.json" $"Missing deny marker '{marker}'"
@@ -233,6 +261,12 @@ let validatePermissionMarkers config =
 
     if not (permissionPatternAction config "bash" officeDocumentsFsiPattern "ask") then
         error "office-fsi-permission" "opencode.json" "OfficeDocuments dotnet-fsi permission must be ask"
+
+    if not (permissionPatternAction config "bash" auditValidationFsiPattern "allow") then
+        error "audit-validation-permission" "opencode.json" "ValidateInfrastructure must be allowed"
+
+    if not (permissionPatternAction config "bash" auditTestFsiPattern "ask") then
+        error "audit-test-permission" "opencode.json" "TestInfrastructure must require confirmation"
 
     for tool in [ "firefox_read"; "firefox_find"; "firefox_close" ] do
         if not (permissionAction config tool "allow") then
@@ -324,11 +358,13 @@ if selfTest then
         "MCP --manifest-path target"
         (commandTargetSpecs [ "cargo"; "test"; "--manifest-path"; "mcp/firefox/Cargo.toml" ] = [ "mcp/firefox/Cargo.toml" ])
     requireSelfTest "plugin syntax failure" (checkPluginSyntax (Path.Combine(root, "plugins/broken.js")) 1 "Unexpected token" |> Option.isSome)
-    use fixture = JsonDocument.Parse("""{ "permission": { "telegram_*": "ask", "github_*": "ask", "firefox_*": "ask", "firefox_read": "allow", "firefox_find": "allow", "firefox_close": "allow", "bash": { "dotnet fsi \"C:/Users/andre/.config/opencode/skills/office-documents/scripts/*": "allow" }, "read": { "**/.env": "deny", "**/auth.json": "deny", "**/credentials.json": "deny", "**/secrets.json": "deny", "**/token.json": "deny", "**/id_rsa": "deny", "**/cookies.sqlite": "deny" } } }""")
+    use fixture = JsonDocument.Parse("""{ "permission": { "telegram_*": "ask", "github_*": "ask", "firefox_*": "ask", "firefox_read": "allow", "firefox_find": "allow", "firefox_close": "allow", "bash": { "dotnet fsi \"C:/Users/andre/.config/opencode/skills/office-documents/scripts/*": "allow", "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit-infra/scripts/ValidateInfrastructure.fsx*": "allow", "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit-infra/scripts/TestInfrastructure.fsx*": "ask" }, "read": { "**/.env": "deny", "**/auth.json": "deny", "**/credentials.json": "deny", "**/secrets.json": "deny", "**/token.json": "deny", "**/id_rsa": "deny", "**/Mozilla/Firefox/Profiles/**/logins.json": "deny", "**/Mozilla/Firefox/Profiles/**/key4.db": "deny", "**/Mozilla/Firefox/Profiles/**/cookies.sqlite": "deny", "**/Google/Chrome/User Data/**/Login Data": "deny", "**/Google/Chrome/User Data/**/Cookies": "deny", "**/Microsoft/Edge/User Data/**/Login Data": "deny", "**/Microsoft/Edge/User Data/**/Cookies": "deny", "**/BraveSoftware/Brave-Browser/User Data/**/Login Data": "deny", "**/BraveSoftware/Brave-Browser/User Data/**/Cookies": "deny", "**/Opera Software/Opera Stable/**/Login Data": "deny", "**/Opera Software/Opera Stable/**/Cookies": "deny", "**/Vivaldi/User Data/**/Login Data": "deny", "**/Vivaldi/User Data/**/Cookies": "deny" } } }""")
     requireSelfTest
         "Office permission marker"
         (not (permissionPatternAction fixture.RootElement "bash" officeDocumentsFsiPattern "ask"))
     requireSelfTest "permission markers" (permissionPatternAction fixture.RootElement "read" "**/.env" "deny")
+    for marker in requiredReadDenies do
+        requireSelfTest $"read deny marker {marker}" (permissionPatternAction fixture.RootElement "read" marker "deny")
     printfn "OK infrastructure validator self-test"
     exit 0
 
@@ -392,10 +428,13 @@ if File.Exists packagePath then
     try
         use document = JsonDocument.Parse(File.ReadAllText packagePath)
         match tryProperty "scripts" document.RootElement with
-        | Some scripts when scripts.ValueKind = JsonValueKind.Object -> validatePackageScripts scripts
-        | _ -> error "package-scripts" "package.json" "Missing scripts object"
+        | Some scripts when scripts.ValueKind = JsonValueKind.Object && not (scripts.EnumerateObject() |> Seq.isEmpty) ->
+            error "npm-test-dispatcher" "package.json" "npm test dispatcher scripts are removed; TestInfrastructure.fsx is the canonical test entry"
+        | _ -> ()
     with ex ->
         error "package-json" "package.json" $"Invalid JSON: {ex.Message}"
+
+validateTestEntryPoint ()
 
 validatePlugins ()
 

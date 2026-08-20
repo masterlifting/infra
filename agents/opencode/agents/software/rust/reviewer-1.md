@@ -3,7 +3,7 @@ description: Independent Rust correctness review for behavior, regressions, erro
 model: openai/gpt-5.6-luna
 variant: high
 mode: subagent
-steps: 12
+steps: 16
 permission:
   edit: deny
 ---

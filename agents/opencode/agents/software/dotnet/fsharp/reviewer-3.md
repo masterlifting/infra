@@ -3,7 +3,7 @@ description: Independent .NET/F# contract review for acceptance criteria, edge c
 model: deepseek/deepseek-v4-flash
 variant: high
 mode: subagent
-steps: 12
+steps: 16
 permission:
     edit: deny
 ---

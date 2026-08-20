@@ -3,7 +3,7 @@ description: Audits OpenCode infrastructure including configuration, agents, com
 model: openai/gpt-5.6-luna
 variant: medium
 mode: subagent
-steps: 30
+steps: 40
 permission:
     bash: deny
     edit: deny

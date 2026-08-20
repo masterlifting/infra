@@ -3,7 +3,7 @@ description: Designs, writes, and runs Rust tests; use for test requests, covera
 model: deepseek/deepseek-v4-flash
 variant: high
 mode: subagent
-steps: 20
+steps: 30
 permission:
   edit: allow
 ---

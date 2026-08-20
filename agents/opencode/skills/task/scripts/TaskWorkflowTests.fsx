@@ -78,7 +78,7 @@ let frozenReview (text: string) =
     |> replaceRequired "- State: NEW" "- State: FROZEN"
     |> replaceRequired "- Implementation baseline: TBD" "- Implementation baseline: baseline-1"
     |> replaceRequired "- Build evidence: Not run." "- Build evidence: Not applicable: script-only contract"
-    |> replaceRequired "- Test evidence: Not run." "- Test evidence: Passed: npm run test:task"
+    |> replaceRequired "- Test evidence: Not run." "- Test evidence: Passed: dotnet fsi TestInfrastructure.fsx"
     |> replaceRequired "| ---------- | ------ | -------- |" "| ---------- | ------ | -------- |\n| None | APPROVE | No accepted findings |"
 
 let frozenSolutionContract (text: string) =
@@ -228,7 +228,7 @@ try
     assertContains "missing frozen details diagnostic" "Review beyond NEW requires frozen solution details" frozenPrerequisitesValidation.Output
     assertContains "missing frozen evidence diagnostic" "Review beyond NEW requires exact 'Passed: <command/result>'" frozenPrerequisitesValidation.Output
 
-    let frozenWithoutEvidence = frozenReview codeText |> replaceRequired "- Test evidence: Passed: npm run test:task" "- Test evidence: Not run."
+    let frozenWithoutEvidence = frozenReview codeText |> replaceRequired "- Test evidence: Passed: dotnet fsi TestInfrastructure.fsx" "- Test evidence: Not run."
     File.WriteAllText(codePath, frozenWithoutEvidence)
     let missingEvidenceValidation = runFsi fixtureRoot validateScript [ codePath ]
     assertTrue "frozen review without required evidence was accepted" (missingEvidenceValidation.ExitCode <> 0)
@@ -248,7 +248,7 @@ try
 
     let frozenWithNotApplicableRationale =
         frozenReview codeText
-        |> replaceRequired "- Test evidence: Passed: npm run test:task" "- Test evidence: Not applicable: external test environment is unavailable"
+        |> replaceRequired "- Test evidence: Passed: dotnet fsi TestInfrastructure.fsx" "- Test evidence: Not applicable: external test environment is unavailable"
     File.WriteAllText(codePath, frozenWithNotApplicableRationale)
     let notApplicableRationaleValidation = runFsi fixtureRoot validateScript [ codePath ]
     assertTrue ("explicit not-applicable rationale is invalid: " + notApplicableRationaleValidation.Output) (notApplicableRationaleValidation.ExitCode = 0)

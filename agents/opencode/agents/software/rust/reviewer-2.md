@@ -3,7 +3,7 @@ description: Independent Rust architecture-conformity review for crate boundarie
 model: moonshotai/kimi-k3
 variant: high
 mode: subagent
-steps: 12
+steps: 16
 permission:
   edit: deny
 ---

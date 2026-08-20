@@ -1,7 +1,7 @@
 ---
 description: Primary coordinator agent for interactive sessions; owns user goals, routing, delegation, and verification.
 model: openai/gpt-5.6-terra
-variant: medium
+variant: low
 mode: primary
 steps: 100
 ---
