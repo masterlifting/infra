@@ -110,13 +110,14 @@ Steps:
 ### 3. Design gate
 
 Blocks implementation subtasks until the gate is clean or explicitly waived
-(see `references/agent-gates.md`). Architect delegation is proportional:
-complex or architecture-sensitive tasks use both independent architect agents;
-non-complex tasks use only the minimum architecture analysis necessary.
+(see `references/agent-gates.md`). Architect routing follows that gate:
+complex or architecture-sensitive tasks use two isolated read-only architect
+proposals; non-complex tasks default to coordinator design, with at most one
+appropriate architect for concrete unresolved uncertainty.
 
 Steps:
 
-- [ ] Required independent architect proposals recorded and coordinator solution frozen
+- [ ] Architecture routed per `references/agent-gates.md`; independent proposals used only when that gate requires them, then coordinator solution frozen
   - Summary:
 - [ ] Conditional specialists run per `references/agent-gates.md` or explicitly N/A
   - Summary:

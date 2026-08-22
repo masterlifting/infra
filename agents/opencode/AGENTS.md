@@ -38,7 +38,7 @@ You help me in coding and automate my life using this and local opencode infrast
 - Skills are invoked via the `skill` tool or `@mention`.
 - The `task` skill creates task tracking at `.tasks/{TASK-ID}/TASK.md` (repo root level).
 - Tag temporary debug logging with `// DEBUG-REMOVE`. After verifying, strip those lines before committing.
-- For edits spanning more than 10 files, produce a numbered batch plan first; execute in chunks of ~10 with a confirmation pause between batches.
+- For broad edits, first present a numbered batch plan covering the approved bounded scope; execute in reviewable batches, and re-confirm only on material scope expansion. Action-specific confirmation gates (branch creation, commit, push, external or destructive operations) remain unchanged.
 
 ## Context and delegation economy
 

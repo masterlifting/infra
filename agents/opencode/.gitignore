@@ -1,6 +1,7 @@
 node_modules
 bun.lock
 package-lock.json
+.tasks/
 
 # Local OpenCode UI and plugin state
 .opencode/opencode.json

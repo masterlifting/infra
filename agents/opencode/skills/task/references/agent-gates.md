@@ -7,18 +7,18 @@ Coordinator-to-subagent handoffs follow `@C:/Users/andre/.config/opencode/rules/
 Language match: pick the team under `agents/software/` that matches the touched code - `dotnet/csharp`, `dotnet/fsharp`, or `rust`.
 The engineer owns production implementation and builds. The tester owns test analysis, implementation, and execution. The primary coordinator owns synthesis, triage, state transitions, and completion. Review is a single post-evidence Discovery activity, not a routine implementation gate.
 Use database, DevOps, security, or performance specialists only when concrete task or diff evidence materially affects their owned surface.
-For a language without a dedicated team, assign `executor` as the editable implementation/build/test owner and separate `general` invocations for independent design and review.
+For a language without a dedicated team, assign `executor` as the editable implementation/build/test owner and use `general` invocations for the architecture and review roles.
 
 ## Gate matrix
 
 | Phase | Always | Conditional (by concrete touched surface) |
 | --------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Design gate (subtask 3)     | complex or architecture-sensitive: all language-matching architect agents; otherwise an independent `general` design review. Non-complex: only the minimum architecture analysis necessary, and never multiple architects merely because they exist | `devops/engineer` for DevOps-only work; `database/sql-reviewer` if schema/migration planned; `security/reviewer` for sensitive surfaces |
+| Design gate (subtask 3)     | complex or architecture-sensitive: both language-matching architect agents (isolated, read-only, equivalent evidence); non-complex: defaults to coordinator design, with at most one appropriate architect for concrete unresolved uncertainty and no general design review | `devops/engineer` for DevOps-only work; `database/sql-reviewer` if schema/migration planned; `security/reviewer` for sensitive surfaces |
 | Implementation and build | language-matching engineer | database engineer for DB-heavy work; DevOps engineer for CI/deploy work |
 | Tests                       | language-matching `tester` designs, implements, and runs tests   | If no tester exists, assign test work to the implementation owner                                                                        |
 | Discovery review | Standard: reviewer 1 and reviewer 3. Full/architecture-sensitive: reviewers 1, 2, and 3 | Applicable specialist reviewers only |
 
-Complex or architecture-sensitive language tasks retain both independent architect agents and coordinator synthesis. Non-complex tasks use only the minimum architecture analysis necessary; never invoke multiple architects merely because they exist. When architects are used, both receive the same evidence and work independently. The coordinator chooses or subtractively synthesizes the smallest sufficient design, records requirements, acceptance criteria, assumptions, non-goals, boundaries, constraints, review profile, and relevant rejected alternatives, then freezes it.
+Complex or architecture-sensitive language tasks use both language-matching architect agents: each receives the same evidence, works in isolation, and is read-only. The coordinator subtractively synthesizes the smallest sufficient design from the two proposals. Non-complex tasks default to the coordinator's own design; the coordinator invokes at most one appropriate architect only for concrete unresolved uncertainty, and never a general design review. The coordinator records requirements, acceptance criteria, assumptions, non-goals, boundaries, constraints, review profile, and relevant rejected alternatives, then freezes it.
 
 Architecture reopens only when the design cannot satisfy an acceptance criterion, contains a blocking correctness/security/data-integrity defect, materially misunderstands a required external contract, or is technically impossible under an approved constraint. Another valid design, style, extensibility, cleanup, or speculative optimization does not reopen it.
 

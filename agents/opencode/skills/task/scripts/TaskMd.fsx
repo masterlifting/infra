@@ -24,7 +24,7 @@ let requiredCodeGateLabels =
       "Tester inspected existing coverage" ]
 
 let requiredDesignGateLabels =
-    [ "Required independent architect proposals recorded and coordinator solution frozen"
+    [ "Architecture routed per `references/agent-gates.md`; independent proposals used only when that gate requires them, then coordinator solution frozen"
       "Conditional specialists run per `references/agent-gates.md` or explicitly N/A"
       "Set `Implementation plan` to `non-complex` or `complex`; approve the final task-specific structure with no generic planning placeholders" ]
 

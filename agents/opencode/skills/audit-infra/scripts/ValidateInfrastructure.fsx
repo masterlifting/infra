@@ -738,7 +738,8 @@ requireMarkers "review-convergence" "rules/software/review.md" canonicalReviewMa
 requireMarkers
     "task-convergence"
     "skills/task/SKILL.md"
-    [ "Freeze one solution after independent architecture proposals"
+    [ "owns architecture selection"
+      "independent architecture proposals only when that gate requires them"
       "one Discovery review"
       "bounded remediation, and targeted Verification"
       "Do not restart Discovery after the accepted finding set freezes" ]
@@ -816,7 +817,7 @@ let taskTemplateMarkers =
       "- Test evidence: Not run."
       "### Accepted findings"
       "### Verification receipts"
-      "Required independent architect proposals recorded and coordinator solution frozen"
+      "Architecture routed per `references/agent-gates.md`; independent proposals used only when that gate requires them, then coordinator solution frozen"
       "Conditional specialists run per `references/agent-gates.md` or explicitly N/A"
       "Engineer-owned implementation completed"
       "Tester inspected existing coverage"
@@ -837,7 +838,7 @@ requireMarkers
       "reviewHeading"
       "validReviewStates"
       "behavioralSpecReferencePrefix"
-      "Required independent architect proposals recorded and coordinator solution frozen"
+      "Architecture routed per `references/agent-gates.md`; independent proposals used only when that gate requires them, then coordinator solution frozen"
       "Engineer-owned implementation completed"
       "Tester inspected existing coverage"
       "## Solution Contract"
