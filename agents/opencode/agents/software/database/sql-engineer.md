@@ -1,6 +1,6 @@
 ---
 description: SQL/database engineering subagent for migrations, repositories, raw SQL, and data-access safety; use when task evidence materially touches database schema, data, or data access.
-model: deepseek/deepseek-v4-flash
+model: mistral/mistral-medium-2604
 variant: high
 mode: subagent
 steps: 30

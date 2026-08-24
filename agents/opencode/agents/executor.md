@@ -1,7 +1,7 @@
 ---
 description: Implements well-scoped user instructions with minimal, reviewable edits; use for focused delivery when design and research are settled, not for architecture, open-ended exploration, or work the coordinator can deliver directly from current context.
-model: deepseek/deepseek-v4-flash
-variant: high
+model: mistral/mistral-small-2603
+variant: none
 mode: subagent
 steps: 20
 permission:

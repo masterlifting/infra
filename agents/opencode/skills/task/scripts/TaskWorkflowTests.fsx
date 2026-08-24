@@ -905,19 +905,40 @@ try
 
     assertTrue "closing-steps.md dropped the terminal-current Notes guidance" (closingSteps.Contains "terminal-current")
     assertTrue
+        "closing-steps.md dropped the observable dependency handoff guidance"
+        (closingSteps.Contains "Unblocks:" && closingSteps.Contains "Unblock condition:" && closingSteps.Contains "refresh and revalidate")
+    assertTrue
         "closing-steps.md dropped the ambiguous remote effects pointer"
         (closingSteps.Contains "observable target" && closingSteps.Contains "confirmation-policy.md")
 
     for marker in
         [ "- Origin: (optional) path of the source record this task derives from"
           "- Unblocks: (optional) path of a dependent record to refresh on completion; never mutate it"
+          "- Unblock condition: (optional) observable condition (e.g., environment variable, file presence, API response) the dependent workflow must revalidate before proceeding; never mutate the dependent record from this task"
           "Durable portable record"
-          "terminal-current" ] do
+          "terminal-current"
+          "completing this task does not establish the dependent condition" ] do
         assertTrue ($"task template is missing continuity marker: {marker}") (taskTemplate.Contains(marker, StringComparison.Ordinal))
         assertTrue ($"generated code task is missing continuity marker: {marker}") (codeText.Contains(marker, StringComparison.Ordinal))
         assertTrue ($"generated non-code task is missing continuity marker: {marker}") (nonCodeText.Contains(marker, StringComparison.Ordinal))
 
     printfn "OK continuity semantics guidance and template markers"
+
+    // Test Unblock condition semantics in generated tasks
+    let codeTaskWithOrigin = codeText.Replace("## References", "## References\n\n- Origin: TASK-001\n- Unblocks: TASK-999\n- Unblock condition: environment variable FEATURE_X_ENABLED must be set to true")
+    let codePathWithOrigin = Path.Combine(fixtureRoot, ".tasks", "TASK-102", "TASK.md")
+    File.WriteAllText(codePathWithOrigin, codeTaskWithOrigin)
+    let originValidation = runFsi fixtureRoot validateScript [ codePathWithOrigin ]
+    assertTrue "task with Origin/Unblocks/Unblock condition markers failed validation" (originValidation.ExitCode = 0)
+    assertTrue "Unblock condition marker not preserved" (codeTaskWithOrigin.Contains("Unblock condition:"))
+    assertTrue "Origin marker not preserved" (codeTaskWithOrigin.Contains("Origin: TASK-001"))
+    assertTrue "Unblocks marker not preserved" (codeTaskWithOrigin.Contains("Unblocks: TASK-999"))
+
+    // Test that Unblock condition is treated as a References section marker
+    let unblockConditionInReferences = codeTaskWithOrigin.Contains("- Unblock condition: environment variable FEATURE_X_ENABLED must be set to true")
+    assertTrue "Unblock condition not found in References" unblockConditionInReferences
+
+    printfn "OK Unblock condition semantics and regression coverage"
 
     printfn "OK task creation, validation, and stale-write safety"
 finally

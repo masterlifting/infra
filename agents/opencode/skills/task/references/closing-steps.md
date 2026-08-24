@@ -1,6 +1,6 @@
 # Closing Steps
 
-Run after implementation, build, and tests. Review state follows `agent-gates.md`; cleanup, commits, publishing, and other explicitly gated actions retain their confirmation requirements. Before setting `Status: Complete`, make `## Notes` terminal-current: `State`/`Evidence` reflect the final outcome and `Next` states explicitly that no task work remains, or lists only real manual/optional follow-up (e.g., a known dependent record to refresh — never mutate it).
+Run after implementation, build, and tests. Review state follows `agent-gates.md`; cleanup, commits, publishing, and other explicitly gated actions retain their confirmation requirements. Before setting `Status: Complete`, make `## Notes` terminal-current: `State`/`Evidence` reflect the final outcome and `Next` states explicitly that no task work remains, or lists only real manual/optional follow-up. When `Unblocks:` and `Unblock condition:` are recorded, surface both for the dependent to refresh and revalidate; never mutate it or infer its real-world condition from this task's completion.
 
 ## C0. Discovery and Verification
 

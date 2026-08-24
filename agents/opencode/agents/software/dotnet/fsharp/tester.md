@@ -1,6 +1,6 @@
 ---
 description: Designs, writes, and runs .NET/F# and Expecto tests; use for test requests, coverage gaps, regression verification, or changes in F# test projects; owns tests but not builds.
-model: deepseek/deepseek-v4-flash
+model: mistral/mistral-small-2603
 variant: high
 mode: subagent
 steps: 30

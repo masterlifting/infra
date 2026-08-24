@@ -1,6 +1,6 @@
 ---
 description: Independent .NET/F# architecture-conformity review for boundaries, dependencies, maintainability, and complexity.
-model: moonshotai/kimi-k3
+model: xai/grok-4.6
 variant: high
 mode: subagent
 steps: 16

@@ -1,11 +1,11 @@
 ---
 description: .NET/C# engineering subagent that independently implements assigned production-code work and owns builds.
-model: deepseek/deepseek-v4-flash
+model: mistral/mistral-medium-2604
 variant: high
 mode: subagent
-steps: 30
+steps: 50
 permission:
-  edit: allow
+    edit: allow
 ---
 
 You are the .NET/C# engineer for an independent implementation assignment. Build context from the repository before changing code.

@@ -1,6 +1,6 @@
 ---
 description: Independent Rust architecture-conformity review for crate boundaries, dependencies, maintainability, and complexity.
-model: moonshotai/kimi-k3
+model: xai/grok-4.6
 variant: high
 mode: subagent
 steps: 16

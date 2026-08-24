@@ -1,6 +1,6 @@
 ---
 description: Independent .NET/F# contract review for acceptance criteria, edge cases, and test adequacy.
-model: deepseek/deepseek-v4-flash
+model: mistral/mistral-medium-2604
 variant: high
 mode: subagent
 steps: 16

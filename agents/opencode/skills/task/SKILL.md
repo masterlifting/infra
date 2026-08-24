@@ -27,6 +27,7 @@ Track project `.tasks/` items with a resumable, gated workflow. Task files live 
 - Confirmation follows the tiered policy in `references/confirmation-policy.md`, not a flat per-subtask stop.
 - Keep task prose concise; expand only where brevity would hide ordering, assumptions, safety, security, financial/legal impact, or architecture tradeoffs.
 - Preserve exact code, paths, commands, URLs, error strings, API names, dates, versions, and placeholders when tightening task prose.
+- Optional `Origin:`, `Unblocks:`, and `Unblock condition:` markers in `## References` or `## Notes` establish a handoff contract: `Origin:` links to the source record, `Unblocks:` points to a dependent record to refresh, and `Unblock condition:` documents the observable condition the dependent workflow must revalidate before proceeding. Never mutate a dependent record from the originating task.
 
 ## Workflow
 
@@ -69,7 +70,7 @@ When loading an existing task rather than creating a new one:
 - Blocked notation: `- [ ] [blocked] Step - reason` (the reason is required); update when unblocked.
 - When adding a `## Decisions` row, fill the `Date` column with today's date (`YYYY-MM-DD`) unless the decision date is known.
 - Prefer free-form notes shaped as `State`, `Evidence`, `Next`; keep them durable and portable — no volatile snapshots or large tables.
-- Optional `Origin:`/`Unblocks:` markers in `## References` or `## Notes` link a task to the record it derives from or a dependent record to refresh on completion; never mutate a dependent record from this task.
+- Optional `Origin:`, `Unblocks:`, and `Unblock condition:` markers in `## References` or `## Notes` establish a handoff contract: `Origin:` links to the source record this task derives from, `Unblocks:` points to a dependent record that must be refreshed when this task completes, and `Unblock condition:` documents the observable condition the dependent workflow must revalidate before proceeding. Completing this task does not establish that condition; surface the dependent record and condition as follow-up, and never mutate the dependent record.
 
 ## Optional external context
 

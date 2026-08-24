@@ -78,6 +78,7 @@ Drop rules at generation time:
 - Behavioral specification: (optional) `.tasks/{TASK-ID}/SPEC.md`
 - Origin: (optional) path of the source record this task derives from
 - Unblocks: (optional) path of a dependent record to refresh on completion; never mutate it
+- Unblock condition: (optional) observable condition (e.g., environment variable, file presence, API response) the dependent workflow must revalidate before proceeding; never mutate the dependent record from this task
 
 ## Subtasks
 
@@ -251,6 +252,6 @@ Steps:
      volatile snapshots and large tables. On completion they must be
      terminal-current: Next states explicitly that no task work remains, or
      lists only real manual/optional follow-up (e.g., a known dependent record
-     to refresh — never mutate it). Optional Origin:/Unblocks: markers live in
-     `## References`. -->
+     to refresh — never mutate it). Optional Origin:/Unblocks:/Unblock condition:
+     markers live in `## References`; completing this task does not establish the dependent condition. -->
 ```
