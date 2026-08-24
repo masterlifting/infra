@@ -1,6 +1,6 @@
 # Closing Steps
 
-Run after implementation, build, and tests. Review state follows `agent-gates.md`; cleanup, commits, publishing, and other explicitly gated actions retain their confirmation requirements.
+Run after implementation, build, and tests. Review state follows `agent-gates.md`; cleanup, commits, publishing, and other explicitly gated actions retain their confirmation requirements. Before setting `Status: Complete`, make `## Notes` terminal-current: `State`/`Evidence` reflect the final outcome and `Next` states explicitly that no task work remains, or lists only real manual/optional follow-up (e.g., a known dependent record to refresh — never mutate it).
 
 ## C0. Discovery and Verification
 
@@ -29,3 +29,4 @@ Before committing, remove only temporary artifacts created for the task outside 
 - Include C2 only when the task requires a commit or review artifact.
 - Show the proposed commit message and wait for explicit confirmation before committing.
 - Push and open the repo's normal review artifact (PR/MR) after user confirmation; link it from the task file.
+- If a remote write's result is ambiguous (push, PR/MR, publication, deployment, tracker/comment, or other remote write), inspect the observable target before retrying per `references/confirmation-policy.md` (ambiguous remote effects); never retry blindly, which could duplicate remote effects.

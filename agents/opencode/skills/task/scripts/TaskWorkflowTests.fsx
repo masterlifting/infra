@@ -866,6 +866,59 @@ try
 
     printfn "OK optional behavioral specification validation"
 
+    // Continuity semantics — guidance and template markers must be present in the
+    // task-skill artifacts so resume, ambiguous-remote-effect, and terminal-notes
+    // rules stay discoverable. These are string-level presence checks only; the
+    // free-form Notes semantics are procedural and are not parsed here.
+    let skillPath = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, "..", "SKILL.md"))
+    let confirmationPolicyPath = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, "..", "references", "confirmation-policy.md"))
+    let closingStepsPath = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, "..", "references", "closing-steps.md"))
+    let skill = File.ReadAllText skillPath
+    let confirmationPolicy = File.ReadAllText confirmationPolicyPath
+    let closingSteps = File.ReadAllText closingStepsPath
+
+    for marker in
+        [ "Revalidate volatile facts only when they are material"
+          "target repo identity"
+          "branch/HEAD"
+          "working tree state"
+          "upstream/base when relevant"
+          "PR/MR and CI/check state when relevant"
+          "mutable ticket/spec"
+          "dependency/API/tool versions only when material"
+          "do not keep a large \"last loaded\" table"
+          "terminal-current" ] do
+        assertTrue ($"SKILL.md resume guidance is missing marker: {marker}") (skill.Contains(marker, StringComparison.Ordinal))
+
+    for marker in
+        [ "## Ambiguous remote effects"
+          "push"
+          "PR/MR"
+          "publication"
+          "deployment"
+          "tracker/comment"
+          "other remote write"
+          "observable target"
+          "before retrying"
+          "durable effect journal" ] do
+        assertTrue ($"confirmation-policy.md is missing ambiguous-effects marker: {marker}") (confirmationPolicy.Contains(marker, StringComparison.Ordinal))
+
+    assertTrue "closing-steps.md dropped the terminal-current Notes guidance" (closingSteps.Contains "terminal-current")
+    assertTrue
+        "closing-steps.md dropped the ambiguous remote effects pointer"
+        (closingSteps.Contains "observable target" && closingSteps.Contains "confirmation-policy.md")
+
+    for marker in
+        [ "- Origin: (optional) path of the source record this task derives from"
+          "- Unblocks: (optional) path of a dependent record to refresh on completion; never mutate it"
+          "Durable portable record"
+          "terminal-current" ] do
+        assertTrue ($"task template is missing continuity marker: {marker}") (taskTemplate.Contains(marker, StringComparison.Ordinal))
+        assertTrue ($"generated code task is missing continuity marker: {marker}") (codeText.Contains(marker, StringComparison.Ordinal))
+        assertTrue ($"generated non-code task is missing continuity marker: {marker}") (nonCodeText.Contains(marker, StringComparison.Ordinal))
+
+    printfn "OK continuity semantics guidance and template markers"
+
     printfn "OK task creation, validation, and stale-write safety"
 finally
     if Directory.Exists fixtureRoot then Directory.Delete(fixtureRoot, true)

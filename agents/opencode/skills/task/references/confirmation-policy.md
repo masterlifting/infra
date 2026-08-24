@@ -36,3 +36,7 @@ Tier 1 special case. Always confirm the **exact text** of any comment posted to 
 ## Stricter per-turn policy
 
 The user may require confirmation for additional Tier 2 or Tier 3 actions. Tier 1 and global confirmation gates cannot be waived by a general instruction such as "continue" or "do everything"; confirmation must name the specific gated action.
+
+## Ambiguous remote effects
+
+If a remote write's result is ambiguous (push, PR/MR, publication, deployment, tracker/comment, or other remote write), inspect the observable target (remote refs, PR/MR list, published artifact, deployment state, tracker issue/comment) before retrying. Never retry blindly — retrying without observation could duplicate remote effects. Do not keep a durable effect journal; observe the target each time.
