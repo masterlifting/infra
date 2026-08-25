@@ -41,6 +41,9 @@ assertEqual "lifecycle heading IDs" [ "1"; "2"; "C1" ] ids
 assertEqual "completed subtasks" 2 completed
 assertEqual "total subtasks" 3 total
 assertEqual "valid task ID" (Ok "BACK-123") (tryTaskId "BACK-123")
+assertEqual "discovery review profiles" [ "routine"; "contract"; "architecture"; "combined" ] discoveryReviewProfiles
+assertEqual "valid review profiles" (Set.ofList [ "TBD"; "routine"; "contract"; "architecture"; "combined" ]) validReviewProfiles
+assertEqual "review profile constraint" "TBD, routine, contract, architecture, or combined" reviewProfileConstraint
 
 match tryTaskId "../BACK-123" with
 | Error _ -> ()

@@ -74,7 +74,7 @@ let frozenReview (text: string) =
     |> replaceRequired "- Chosen solution: TBD" "- Chosen solution: Durable task workflow"
     |> replaceRequired "- Important boundaries/contracts: TBD" "- Important boundaries/contracts: TASK.md durable review contract"
     |> replaceRequired "- Implementation constraints: TBD" "- Implementation constraints: Preserve resumability and safe writes"
-    |> replaceRequired "- Review profile: TBD" "- Review profile: Standard"
+    |> replaceRequired "- Review profile: TBD" "- Review profile: routine"
     |> replaceRequired "- State: NEW" "- State: FROZEN"
     |> replaceRequired "- Implementation baseline: TBD" "- Implementation baseline: baseline-1"
     |> replaceRequired "- Build evidence: Not run." "- Build evidence: Not applicable: script-only contract"
@@ -91,7 +91,7 @@ let frozenSolutionContract (text: string) =
     |> replaceRequired "- Chosen solution: TBD" "- Chosen solution: Exact canonical design-gate markers"
     |> replaceRequired "- Important boundaries/contracts: TBD" "- Important boundaries/contracts: TASK.md validation contract"
     |> replaceRequired "- Implementation constraints: TBD" "- Implementation constraints: Preserve resumability and safe writes"
-    |> replaceRequired "- Review profile: TBD" "- Review profile: Standard"
+    |> replaceRequired "- Review profile: TBD" "- Review profile: routine"
 
 let addAcceptedFinding findingId contract status (text: string) =
     replaceRequired
@@ -193,7 +193,23 @@ try
     File.WriteAllText(codePath, invalidReviewProfile)
     let invalidReviewProfileValidation = runFsi fixtureRoot validateScript [ codePath ]
     assertTrue "invalid review profile was accepted" (invalidReviewProfileValidation.ExitCode <> 0)
-    assertContains "invalid review profile diagnostic" "Solution Contract Review profile must be TBD, Standard, or Full / architecture-sensitive" invalidReviewProfileValidation.Output
+    assertContains "invalid review profile diagnostic" $"Solution Contract Review profile must be {reviewProfileConstraint}" invalidReviewProfileValidation.Output
+
+    for obsoleteProfile in [ "Standard"; "Full / architecture-sensitive" ] do
+        let obsoleteReviewProfile = replaceRequired "- Review profile: TBD" $"- Review profile: {obsoleteProfile}" codeText
+        File.WriteAllText(codePath, obsoleteReviewProfile)
+        let obsoleteReviewProfileValidation = runFsi fixtureRoot validateScript [ codePath ]
+        assertTrue $"obsolete review profile {obsoleteProfile} was accepted" (obsoleteReviewProfileValidation.ExitCode <> 0)
+        assertContains
+            $"obsolete review profile diagnostic: {obsoleteProfile}"
+            $"Solution Contract Review profile must be {reviewProfileConstraint}"
+            obsoleteReviewProfileValidation.Output
+
+    for profile in discoveryReviewProfiles do
+        let selectedProfile = replaceRequired "- Review profile: TBD" $"- Review profile: {profile}" codeText
+        File.WriteAllText(codePath, selectedProfile)
+        let selectedProfileValidation = runFsi fixtureRoot validateScript [ codePath ]
+        assertTrue ($"semantic review profile {profile} was rejected: " + selectedProfileValidation.Output) (selectedProfileValidation.ExitCode = 0)
 
     let invalidRemediationPass = replaceRequired "- Remediation pass: 0" "- Remediation pass: 3" codeText
     File.WriteAllText(codePath, invalidRemediationPass)
@@ -413,7 +429,7 @@ try
           "- Chosen solution: TBD", "- Chosen solution: Exact canonical design-gate markers"
           "- Important boundaries/contracts: TBD", "- Important boundaries/contracts: TASK.md validation contract"
           "- Implementation constraints: TBD", "- Implementation constraints: Preserve resumability and safe writes"
-          "- Review profile: TBD", "- Review profile: Standard" ] do
+          "- Review profile: TBD", "- Review profile: routine" ] do
         let completedGateWithPlaceholder =
             codeText
             |> frozenSolutionContract

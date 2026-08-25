@@ -1,6 +1,6 @@
 ---
 description: Designs, writes, and runs Rust tests; use for test requests, coverage gaps, regression verification, or changes in Rust test modules; owns tests but not builds.
-model: mistral/mistral-small-2603
+model: deepseek/deepseek-v4-flash
 variant: high
 mode: subagent
 steps: 30

@@ -6,7 +6,7 @@ Single source for naming, layout, and verification conventions in this config re
 
 | Surface        | Convention                                                   | Examples                                                              |
 | -------------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
-| Agents         | Domain path plus role                                        | `software/dotnet/csharp/reviewer-1`, `software/database/sql-reviewer` |
+| Agents         | Domain path plus semantic role                               | `software/dotnet/csharp/reviewer`, `software/database/reviewer` |
 | Commands       | Kebab-case workflow name under `commands/`                   | `youtrack`                                                            |
 | Skills         | Kebab-case folder with `SKILL.md`                            | `task`, `youtrack`                                                    |
 | Rules          | Domain path plus topic                                       | `software/dotnet/fsharp/engineering.md`, `security.md`                |
@@ -45,7 +45,7 @@ AGENTS.md               # Always-loaded user and session defaults
 ## Verification
 
 - For config edits, parse JSON and run `git diff --check`.
-- For infrastructure documents and configuration, run `dotnet fsi "skills/audit-infra/scripts/ValidateInfrastructure.fsx"` to check concrete local routes, strict one-line frontmatter, F# naming, helper filenames, selected permission ordering, and exact duplicate prose.
+- For infrastructure documents and configuration, run `dotnet fsi "skills/audit/scripts/ValidateInfrastructure.fsx"` to check concrete local routes, strict one-line frontmatter, F# naming, helper filenames, selected permission ordering, and exact duplicate prose.
 - For skill edits, check frontmatter, route references, and `rules/skill.md` validation expectations.
 - For plugin edits, run `node --check plugins/<name>.js` and the relevant deterministic test when one exists.
 - After destructive-command policy changes, run `node lib/destructive-patterns.test.mjs` to verify the shared blocker patterns.

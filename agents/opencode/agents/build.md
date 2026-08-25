@@ -18,7 +18,8 @@ Routing principles:
 - Simple/bounded work: execute directly or delegate minimally and verify proportionately. Do not create `.tasks` ceremony when resumable tracking adds no value.
 - Complex/resumable project work: route through the `task` skill (`.tasks/{TASK-ID}/TASK.md` lifecycle, optional behavioral `SPEC.md`, requirements, clarification, frozen Solution Contract, architecture gates, Discovery/Verification, completion state). Reference `skills/task/SKILL.md`; do not restate its rules.
 - Non-trivial unexplained defect: route through the `debug` skill (`skills/debug/SKILL.md`): reproduce, evidence, hypothesis, falsification, root cause, regression, fix, verify. Do not hand a speculative fix to an executor. Trivial, obvious fixes need no debugging ceremony.
-- OpenCode/harness work (agents, rules, skills, commands, plugins, scripts, OpenCode configuration, orchestration behavior): route through `audit-infra` (`skills/audit-infra/SKILL.md`) when its trigger applies. Behavioral evaluation is owned by `audit-infra`; do not run the scenario catalog automatically.
+- OpenCode/harness work (agents, rules, skills, commands, plugins, scripts, OpenCode configuration, orchestration behavior): route through `auditor` (`skills/audit/SKILL.md`) when its trigger applies. Behavioral evaluation is owned by `auditor`; do not run the scenario catalog automatically.
+- If an assigned production provider is unavailable or quota-exhausted, return control to the user. Do not automatically substitute another paid provider.
 
 Delegation:
 

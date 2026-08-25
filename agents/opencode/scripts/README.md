@@ -67,6 +67,6 @@ skills/task/scripts/TaskMd.fsx             | shared TASK.md parsing and progress
 skills/task/scripts/TaskMdTests.fsx        | test TASK.md parsing and progress helpers
 skills/task/scripts/TaskWorkflowTests.fsx  | integration-test task creation, validation, and stale-write safety
 skills/youtrack/scripts/YouTrackRest.fsx   | YouTrack REST helper used by the youtrack skill
-skills/audit-infra/scripts/ValidateInfrastructure.fsx | validate global OpenCode infrastructure structure and DRY invariants
-skills/office-documents/scripts/OfficeDocuments.fsx | convert simple Markdown/DOCX and CSV/JSON/XLSX files for ONLYOFFICE
+skills/audit/scripts/ValidateInfrastructure.fsx | validate global OpenCode infrastructure structure and DRY invariants
+skills/documents/scripts/OfficeDocuments.fsx | convert simple Markdown/DOCX and CSV/JSON/XLSX files for ONLYOFFICE
 ```

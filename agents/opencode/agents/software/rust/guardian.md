@@ -1,6 +1,6 @@
 ---
 description: Independent Rust architecture-conformity review for crate boundaries, dependencies, maintainability, and complexity.
-model: xai/grok-4.6
+model: opencode-go/grok-4.5
 variant: high
 mode: subagent
 steps: 16

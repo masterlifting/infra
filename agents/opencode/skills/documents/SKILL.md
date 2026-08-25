@@ -1,5 +1,5 @@
 ---
-name: office-documents
+name: documents
 description: Use when reading, creating, or converting simple local DOCX and XLSX files, including Markdown-to-DOCX and CSV/JSON-to-XLSX workflows for ONLYOFFICE. Do not use for pixel-perfect layouts, macros, recalculated formulas, complex embedded content, or desktop UI automation.
 ---
 
@@ -25,7 +25,7 @@ Create and extract simple local Office documents that open in ONLYOFFICE without
 3. Confirm the exact conversion command and that the output does not already exist, then request permission to run:
 
    ```powershell
-   dotnet fsi "C:/Users/andre/.config/opencode/skills/office-documents/scripts/OfficeDocuments.fsx" <operation> --input "<input>" --output "<output>" [--sheet "<sheet>"]
+   dotnet fsi "C:/Users/andre/.config/opencode/skills/documents/scripts/OfficeDocuments.fsx" <operation> --input "<input>" --output "<output>" [--sheet "<sheet>"]
    ```
 
 4. Report the output path, operation, row count where applicable, and any unsupported content that may have been simplified.

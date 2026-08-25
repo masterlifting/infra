@@ -134,7 +134,7 @@ match solutionState with
 | _ -> ()
 
 match reviewProfile with
-| Some profile when not (validReviewProfiles.Contains profile) -> report "Solution Contract Review profile must be TBD, Standard, or Full / architecture-sensitive"
+| Some profile when not (validReviewProfiles.Contains profile) -> report $"Solution Contract Review profile must be {reviewProfileConstraint}"
 | _ -> ()
 
 let reviewPass =

@@ -16,7 +16,7 @@ Replaces the flat "confirm before each subtask" rule. Tiered by risk and reversi
 - Build via the team's engineer agent; test via the team's tester agent
 - Metadata-only git commands explicitly allowed by global configuration (`git status`, branch identity, remotes, revisions, tree/file names)
 - File reads, grep, glob
-- Automatic task-progress synchronization through the global plugin; manual F# helper invocations follow the configured bash permission prompt (task and audit-infra scripts are auto-allowed; office-document conversion requires confirmation)
+- Automatic task-progress synchronization through the global plugin; manual F# helper invocations follow the configured bash permission prompt (task and audit scripts are auto-allowed; document conversion requires confirmation)
 - Updating the task file's progress counter / checkbox state for already-completed work
 - Spawning architect and reviewer gates per `references/agent-gates.md`
 - Assigning in-scope implementation, build, and test work to the owner agents

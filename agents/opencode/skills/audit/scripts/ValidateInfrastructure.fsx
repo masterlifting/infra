@@ -140,7 +140,7 @@ let missingInRootTargets candidateRoot exists arguments =
 
 let scriptHas (command: string) (fragment: string) = command.IndexOf(fragment, StringComparison.Ordinal) >= 0
 
-let testEntryPointPath = Path.Combine(root, "skills", "audit-infra", "scripts", "TestInfrastructure.fsx")
+let testEntryPointPath = Path.Combine(root, "skills", "audit", "scripts", "TestInfrastructure.fsx")
 let testEntryPointRelative = relativePath testEntryPointPath
 
 // Fixed step commands are triple-quoted F# string literals in the entry
@@ -225,9 +225,9 @@ let permissionPatternAction config key pattern expected =
     |> Option.filter (fun value -> value.ValueKind = JsonValueKind.String)
     |> Option.exists (fun value -> value.GetString() = expected)
 
-let officeDocumentsFsiPattern = "dotnet fsi \"C:/Users/andre/.config/opencode/skills/office-documents/scripts/*"
-let auditValidationFsiPattern = "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit-infra/scripts/ValidateInfrastructure.fsx*"
-let auditTestFsiPattern = "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit-infra/scripts/TestInfrastructure.fsx*"
+let officeDocumentsFsiPattern = "dotnet fsi \"C:/Users/andre/.config/opencode/skills/documents/scripts/*"
+let auditValidationFsiPattern = "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit/scripts/ValidateInfrastructure.fsx*"
+let auditTestFsiPattern = "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit/scripts/TestInfrastructure.fsx*"
 
 let requiredReadDenies =
     [ "**/.env"
@@ -344,6 +344,221 @@ let validatePlugins () =
             | Some message -> error "plugin-syntax" (relativePath plugin) message
             | None -> ()
 
+let prohibitedAgentNames =
+    Set.ofList
+        [ "audit-session"
+          "coordinator"
+          "gaps-clarifier"
+          "simplifier"
+          "review-arbiter"
+          "audit"
+          "audit-infra"
+          "multimodal-lens"
+          "architect-1"
+          "architect-2"
+          "reviewer-1"
+          "reviewer-2"
+          "reviewer-3"
+          "sql-engineer"
+          "sql-reviewer" ]
+
+let isProhibitedAgentName (agentName: string) = prohibitedAgentNames.Contains(agentName.ToLowerInvariant())
+
+let productionModels =
+    Set.ofList
+        [ "openai/gpt-5.6-terra"
+          "openai/gpt-5.6-luna"
+          "openai/gpt-5.6-sol"
+          "deepseek/deepseek-v4-flash"
+          "deepseek/deepseek-v4-pro"
+          "opencode-go/grok-4.5" ]
+
+let productionVariants = Set.ofList [ "low"; "medium"; "high" ]
+
+let languageTeams = [ "dotnet/csharp"; "dotnet/fsharp"; "rust" ]
+
+let languageRoles =
+    [ "architect"
+      "challenger"
+      "engineer"
+      "tester"
+      "reviewer"
+      "guardian"
+      "validator" ]
+
+let languageRoleAssignment role =
+    match role with
+    | "architect" -> Some("openai/gpt-5.6-sol", "high")
+    | "challenger" -> Some("opencode-go/grok-4.5", "high")
+    | "engineer" -> Some("deepseek/deepseek-v4-pro", "high")
+    | "tester" -> Some("deepseek/deepseek-v4-flash", "high")
+    | "reviewer" -> Some("openai/gpt-5.6-luna", "high")
+    | "guardian" -> Some("opencode-go/grok-4.5", "high")
+    | "validator" -> Some("deepseek/deepseek-v4-flash", "high")
+    | _ -> None
+
+let sharedAgentAssignments =
+    [ "agents/build.md", "openai/gpt-5.6-terra", "medium"
+      "agents/auditor.md", "openai/gpt-5.6-luna", "medium"
+      "agents/vision.md", "openai/gpt-5.6-terra", "medium"
+      "agents/explorer.md", "deepseek/deepseek-v4-flash", "medium"
+      "agents/executor.md", "deepseek/deepseek-v4-flash", "high"
+      "agents/software/database/engineer.md", "deepseek/deepseek-v4-pro", "high"
+      "agents/software/database/reviewer.md", "openai/gpt-5.6-luna", "high"
+      "agents/software/devops/engineer.md", "deepseek/deepseek-v4-pro", "high"
+      "agents/software/devops/reviewer.md", "openai/gpt-5.6-luna", "high"
+      "agents/software/security/reviewer.md", "openai/gpt-5.6-terra", "high"
+      "agents/software/performance/reviewer.md", "openai/gpt-5.6-terra", "high" ]
+
+let grokDiversityRoles = Set.ofList [ "challenger"; "guardian" ]
+let deepseekWorkerRoles = Set.ofList [ "explorer"; "executor"; "engineer"; "tester"; "validator" ]
+let grokDiversityModel = "opencode-go/grok-4.5"
+let deepseekProviderPrefix = "deepseek/"
+
+let expectedAgentAssignments =
+    [ for path, model, variant in sharedAgentAssignments do
+          yield path, model, variant
+
+      for team in languageTeams do
+          for role in languageRoles do
+              match languageRoleAssignment role with
+              | Some(model, variant) -> yield $"agents/software/{team}/{role}.md", model, variant
+              | None -> () ]
+
+let roleUsesAssignedChannel (role: string) (model: string) =
+    if grokDiversityRoles.Contains role then model = grokDiversityModel
+    elif deepseekWorkerRoles.Contains role then model.StartsWith(deepseekProviderPrefix, StringComparison.Ordinal)
+    else productionModels.Contains model
+
+type RoutingAssignment =
+    { Design: string list
+      Implementation: string list
+      Tests: string list
+      Discovery: string list }
+
+let emptyRouting =
+    { Design = []
+      Implementation = []
+      Tests = []
+      Discovery = [] }
+
+let independentDiscoveryReviewers = [ "reviewer"; "guardian"; "validator" ]
+
+let requiredRoutingScenarios =
+    [ "routine"
+      "contract"
+      "architecture"
+      "combined"
+      "database-only"
+      "app+database"
+      "devops-only"
+      "security-sensitive"
+      "unsupported-language" ]
+
+let discoveryReviewProfiles = [ "routine"; "contract"; "architecture"; "combined" ]
+
+let routingFor =
+    function
+    | "routine" ->
+        { Design = []
+          Implementation = [ "engineer" ]
+          Tests = [ "tester" ]
+          Discovery = [ "reviewer" ] }
+    | "contract" ->
+        { Design = []
+          Implementation = [ "engineer" ]
+          Tests = [ "tester" ]
+          Discovery = independentDiscoveryReviewers }
+    | "architecture" ->
+        { Design = [ "architect"; "challenger" ]
+          Implementation = [ "engineer" ]
+          Tests = [ "tester" ]
+          Discovery = independentDiscoveryReviewers }
+    | "combined" ->
+        { Design = [ "architect"; "challenger" ]
+          Implementation = [ "engineer" ]
+          Tests = [ "tester" ]
+          Discovery = independentDiscoveryReviewers }
+    | "database-only" ->
+        { Design = [ "database/reviewer" ]
+          Implementation = [ "database/engineer" ]
+          Tests = [ "database/engineer" ]
+          Discovery = [ "database/reviewer" ] }
+    | "app+database" ->
+        { Design = [ "database/reviewer" ]
+          Implementation = [ "engineer"; "database/engineer" ]
+          Tests = [ "tester" ]
+          Discovery = [ "reviewer"; "database/reviewer" ] }
+    | "devops-only" ->
+        { Design = [ "devops/engineer" ]
+          Implementation = [ "devops/engineer" ]
+          Tests = [ "devops/engineer" ]
+          Discovery = [ "devops/reviewer" ] }
+    | "security-sensitive" ->
+        { Design = [ "security/reviewer" ]
+          Implementation = [ "engineer" ]
+          Tests = [ "tester" ]
+          Discovery = [ "reviewer"; "security/reviewer" ] }
+    | "unsupported-language" ->
+        { Design = [ "general" ]
+          Implementation = [ "executor" ]
+          Tests = [ "executor" ]
+          Discovery = [ "general" ] }
+    | _ -> emptyRouting
+
+let routedAgentFiles (role: string) =
+    if role = "general" then
+        []
+    elif role = "executor" then
+        [ "agents/executor.md" ]
+    elif role.Contains "/" then
+        [ $"agents/software/{role}.md" ]
+    elif List.contains role languageRoles then
+        [ for team in languageTeams -> $"agents/software/{team}/{role}.md" ]
+    else
+        [ $"agents/{role}.md" ]
+
+let hasAutomaticPaidFallback (config: JsonElement) =
+    let forbidden =
+        [ "fallback"
+          "failover"
+          "fallback_model"
+          "paid_fallback"
+          "automatic_fallback"
+          "model_fallback" ]
+
+    let rec exists (element: JsonElement) =
+        match element.ValueKind with
+        | JsonValueKind.Object ->
+            element.EnumerateObject()
+            |> Seq.exists (fun property ->
+                forbidden |> List.exists (fun name -> property.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                || exists property.Value)
+        | JsonValueKind.Array -> element.EnumerateArray() |> Seq.exists exists
+        | _ -> false
+
+    exists config
+
+let obsoleteLivePatterns =
+    [ "architect-1", Regex(@"architect-1")
+      "architect-2", Regex(@"architect-2")
+      "reviewer-1", Regex(@"reviewer-1")
+      "reviewer-2", Regex(@"reviewer-2")
+      "reviewer-3", Regex(@"reviewer-3")
+      "sql-engineer", Regex(@"sql-engineer")
+      "sql-reviewer", Regex(@"sql-reviewer")
+      "multimodal-lens", Regex(@"multimodal-lens")
+      "audit-infra", Regex(@"audit-infra")
+      "office-documents", Regex(@"office-documents")
+      "agents/audit.md", Regex(@"agents/audit\.md")
+      "model-profiles", Regex(@"model-profiles")
+      "xai/", Regex(@"xai/")
+      "mistral/", Regex(@"mistral/") ]
+
+let obsoleteLiveMatches (content: string) =
+    obsoleteLivePatterns
+    |> List.choose (fun (name, pattern) -> if pattern.IsMatch content then Some name else None)
+
 let requireSelfTest name condition =
     if not condition then failwith $"self-test failed: {name}"
 
@@ -358,13 +573,74 @@ if selfTest then
         "MCP --manifest-path target"
         (commandTargetSpecs [ "cargo"; "test"; "--manifest-path"; "mcp/firefox/Cargo.toml" ] = [ "mcp/firefox/Cargo.toml" ])
     requireSelfTest "plugin syntax failure" (checkPluginSyntax (Path.Combine(root, "plugins/broken.js")) 1 "Unexpected token" |> Option.isSome)
-    use fixture = JsonDocument.Parse("""{ "permission": { "telegram_*": "ask", "github_*": "ask", "firefox_*": "ask", "firefox_read": "allow", "firefox_find": "allow", "firefox_close": "allow", "bash": { "dotnet fsi \"C:/Users/andre/.config/opencode/skills/office-documents/scripts/*": "allow", "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit-infra/scripts/ValidateInfrastructure.fsx*": "allow", "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit-infra/scripts/TestInfrastructure.fsx*": "ask" }, "read": { "**/.env": "deny", "**/auth.json": "deny", "**/credentials.json": "deny", "**/secrets.json": "deny", "**/token.json": "deny", "**/id_rsa": "deny", "**/Mozilla/Firefox/Profiles/**/logins.json": "deny", "**/Mozilla/Firefox/Profiles/**/key4.db": "deny", "**/Mozilla/Firefox/Profiles/**/cookies.sqlite": "deny", "**/Google/Chrome/User Data/**/Login Data": "deny", "**/Google/Chrome/User Data/**/Cookies": "deny", "**/Microsoft/Edge/User Data/**/Login Data": "deny", "**/Microsoft/Edge/User Data/**/Cookies": "deny", "**/BraveSoftware/Brave-Browser/User Data/**/Login Data": "deny", "**/BraveSoftware/Brave-Browser/User Data/**/Cookies": "deny", "**/Opera Software/Opera Stable/**/Login Data": "deny", "**/Opera Software/Opera Stable/**/Cookies": "deny", "**/Vivaldi/User Data/**/Login Data": "deny", "**/Vivaldi/User Data/**/Cookies": "deny" } } }""")
+    use fixture = JsonDocument.Parse("""{ "permission": { "telegram_*": "ask", "github_*": "ask", "firefox_*": "ask", "firefox_read": "allow", "firefox_find": "allow", "firefox_close": "allow", "bash": { "dotnet fsi \"C:/Users/andre/.config/opencode/skills/documents/scripts/*": "allow", "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit/scripts/ValidateInfrastructure.fsx*": "allow", "dotnet fsi \"C:/Users/andre/.config/opencode/skills/audit/scripts/TestInfrastructure.fsx*": "ask" }, "read": { "**/.env": "deny", "**/auth.json": "deny", "**/credentials.json": "deny", "**/secrets.json": "deny", "**/token.json": "deny", "**/id_rsa": "deny", "**/Mozilla/Firefox/Profiles/**/logins.json": "deny", "**/Mozilla/Firefox/Profiles/**/key4.db": "deny", "**/Mozilla/Firefox/Profiles/**/cookies.sqlite": "deny", "**/Google/Chrome/User Data/**/Login Data": "deny", "**/Google/Chrome/User Data/**/Cookies": "deny", "**/Microsoft/Edge/User Data/**/Login Data": "deny", "**/Microsoft/Edge/User Data/**/Cookies": "deny", "**/BraveSoftware/Brave-Browser/User Data/**/Login Data": "deny", "**/BraveSoftware/Brave-Browser/User Data/**/Cookies": "deny", "**/Opera Software/Opera Stable/**/Login Data": "deny", "**/Opera Software/Opera Stable/**/Cookies": "deny", "**/Vivaldi/User Data/**/Login Data": "deny", "**/Vivaldi/User Data/**/Cookies": "deny" } } }""")
     requireSelfTest
         "Office permission marker"
         (not (permissionPatternAction fixture.RootElement "bash" officeDocumentsFsiPattern "ask"))
     requireSelfTest "permission markers" (permissionPatternAction fixture.RootElement "read" "**/.env" "deny")
     for marker in requiredReadDenies do
         requireSelfTest $"read deny marker {marker}" (permissionPatternAction fixture.RootElement "read" marker "deny")
+    requireSelfTest
+        "required routing scenarios encoded"
+        (requiredRoutingScenarios |> List.forall (fun scenario -> routingFor scenario <> emptyRouting))
+    requireSelfTest "discovery profiles are risk-based sets" (discoveryReviewProfiles = [ "routine"; "contract"; "architecture"; "combined" ])
+    requireSelfTest
+        "routine routing"
+        (routingFor "routine" = { Design = []; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = [ "reviewer" ] })
+    requireSelfTest
+        "contract routing"
+        (routingFor "contract" = { Design = []; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = independentDiscoveryReviewers })
+    requireSelfTest
+        "architecture routing"
+        (routingFor "architecture" = { Design = [ "architect"; "challenger" ]; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = independentDiscoveryReviewers })
+    requireSelfTest
+        "combined routing"
+        (routingFor "combined" = { Design = [ "architect"; "challenger" ]; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = independentDiscoveryReviewers })
+    requireSelfTest
+        "database-only routing"
+        (routingFor "database-only" = { Design = [ "database/reviewer" ]; Implementation = [ "database/engineer" ]; Tests = [ "database/engineer" ]; Discovery = [ "database/reviewer" ] })
+    requireSelfTest
+        "app+database routing"
+        (routingFor "app+database" = { Design = [ "database/reviewer" ]; Implementation = [ "engineer"; "database/engineer" ]; Tests = [ "tester" ]; Discovery = [ "reviewer"; "database/reviewer" ] })
+    requireSelfTest
+        "devops-only routing"
+        (routingFor "devops-only" = { Design = [ "devops/engineer" ]; Implementation = [ "devops/engineer" ]; Tests = [ "devops/engineer" ]; Discovery = [ "devops/reviewer" ] })
+    requireSelfTest
+        "security-sensitive routing"
+        (routingFor "security-sensitive" = { Design = [ "security/reviewer" ]; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = [ "reviewer"; "security/reviewer" ] })
+    requireSelfTest
+        "unsupported language/executor routing"
+        (routingFor "unsupported-language" = { Design = [ "general" ]; Implementation = [ "executor" ]; Tests = [ "executor" ]; Discovery = [ "general" ] })
+    requireSelfTest "unknown routing is empty" (routingFor "other" = emptyRouting)
+    requireSelfTest "obsolete architecture-contract is not encoded" (routingFor "architecture-contract" = emptyRouting)
+    requireSelfTest "obsolete Standard profile is not encoded" (routingFor "Standard" = emptyRouting)
+    requireSelfTest "challenger is grok diversity" (grokDiversityRoles.Contains "challenger")
+    requireSelfTest "guardian is grok diversity" (grokDiversityRoles.Contains "guardian")
+    requireSelfTest "validator is deepseek worker" (deepseekWorkerRoles.Contains "validator")
+    requireSelfTest "reviewer is not grok diversity" (not (grokDiversityRoles.Contains "reviewer"))
+    requireSelfTest "architect assignment" (languageRoleAssignment "architect" = Some("openai/gpt-5.6-sol", "high"))
+    requireSelfTest "unknown role assignment" (languageRoleAssignment "reviewer-1" = None)
+    requireSelfTest "obsolete architect-1" (isProhibitedAgentName "architect-1")
+    requireSelfTest "semantic reviewer allowed" (not (isProhibitedAgentName "reviewer"))
+    requireSelfTest "obsolete audit agent" (isProhibitedAgentName "audit")
+    requireSelfTest "semantic auditor allowed" (not (isProhibitedAgentName "auditor"))
+    requireSelfTest
+        "obsolete live architect-1"
+        (obsoleteLiveMatches "see `software/dotnet/fsharp/architect-1`" = [ "architect-1" ])
+    requireSelfTest "obsolete audit-infra" (obsoleteLiveMatches "skills/audit-infra/SKILL.md" = [ "audit-infra" ])
+    requireSelfTest "obsolete office-documents" (obsoleteLiveMatches "skills/office-documents/SKILL.md" = [ "office-documents" ])
+    requireSelfTest "obsolete agents/audit.md" (obsoleteLiveMatches "see agents/audit.md" = [ "agents/audit.md" ])
+    requireSelfTest "auditor is not obsolete" (obsoleteLiveMatches "agents/auditor.md" = [])
+    requireSelfTest "skills/audit is not obsolete" (obsoleteLiveMatches "skills/audit/SKILL.md" = [])
+    use fallbackFixture = JsonDocument.Parse("""{ "fallback": { "model": "openai/gpt-5.6-terra" } }""")
+    requireSelfTest "automatic paid fallback detected" (hasAutomaticPaidFallback fallbackFixture.RootElement)
+    use cleanFixture = JsonDocument.Parse("""{ "model": "openai/gpt-5.6-terra" }""")
+    requireSelfTest "no automatic paid fallback" (not (hasAutomaticPaidFallback cleanFixture.RootElement))
+    requireSelfTest "expected assignment count" (expectedAgentAssignments.Length = sharedAgentAssignments.Length + languageTeams.Length * languageRoles.Length)
+    requireSelfTest "challenger channel" (roleUsesAssignedChannel "challenger" grokDiversityModel)
+    requireSelfTest "engineer channel" (roleUsesAssignedChannel "engineer" "deepseek/deepseek-v4-pro")
+    requireSelfTest "reviewer channel" (roleUsesAssignedChannel "reviewer" "openai/gpt-5.6-luna")
+    requireSelfTest "wrong worker channel rejected" (not (roleUsesAssignedChannel "tester" grokDiversityModel))
     printfn "OK infrastructure validator self-test"
     exit 0
 
@@ -383,6 +659,21 @@ if File.Exists configPath then
 
         if tryProperty "agent" config |> Option.isSome then
             error "inline-agents" "opencode.json" "Agent definitions must remain file-based under agents/"
+
+        if hasAutomaticPaidFallback config then
+            error "paid-fallback" "opencode.json" "Automatic paid-provider fallback must not be configured"
+
+        match tryProperty "model" config with
+        | Some model when model.ValueKind = JsonValueKind.String && productionModels.Contains(model.GetString()) -> ()
+        | Some model when model.ValueKind = JsonValueKind.String ->
+            error "production-model" "opencode.json" $"Global model '{model.GetString()}' is not a verified production ID"
+        | _ -> error "production-model" "opencode.json" "Global model must be a verified production ID"
+
+        match tryProperty "small_model" config with
+        | Some model when model.ValueKind = JsonValueKind.String && model.GetString() = "deepseek/deepseek-v4-flash" -> ()
+        | Some model when model.ValueKind = JsonValueKind.String ->
+            error "production-model" "opencode.json" $"Global small_model '{model.GetString()}' must be deepseek/deepseek-v4-flash"
+        | _ -> error "production-model" "opencode.json" "Global small_model must be deepseek/deepseek-v4-flash"
 
         let bashRules =
             tryProperty "permission" config
@@ -542,14 +833,72 @@ if Directory.Exists agentsRoot then
         parseFrontmatter file
         |> Option.iter (fun (_, values) -> requireFrontmatterValue "description" file values |> ignore)
 
-let prohibitedAgentNames = Set.ofList [ "audit-session"; "coordinator"; "gaps-clarifier"; "simplifier"; "review-arbiter" ]
-let isProhibitedAgentName (agentName: string) = prohibitedAgentNames.Contains(agentName.ToLowerInvariant())
-
 if Directory.Exists agentsRoot then
     for file in recursiveFiles agentsRoot "*.md" do
         let agentName = Path.GetFileNameWithoutExtension file
         if isProhibitedAgentName agentName then
             error "prohibited-agent" (relativePath file) $"Agent definition '{agentName}' is prohibited by the migration contract"
+
+        parseFrontmatter file
+        |> Option.iter (fun (_, values) ->
+            let model = match values.TryGetValue "model" with | true, value -> value | _ -> ""
+            let variant = match values.TryGetValue "variant" with | true, value -> value | _ -> ""
+
+            if String.IsNullOrWhiteSpace model || not (productionModels.Contains model) then
+                error "agent-model" (relativePath file) $"Agent model '{model}' is not a verified production ID"
+
+            if String.IsNullOrWhiteSpace variant || not (productionVariants.Contains variant) then
+                error "agent-variant" (relativePath file) $"Agent variant '{variant}' is not a required production variant"
+
+            if not (roleUsesAssignedChannel agentName model) then
+                error "agent-routing" (relativePath file) $"Role '{agentName}' is not assigned to its required production channel")
+
+let modelProfilesRoot = Path.Combine(root, "model-profiles")
+if Directory.Exists modelProfilesRoot then
+    error "removed-surface" "model-profiles" "Obsolete model-profile artifacts must not exist"
+
+for path, expectedModel, expectedVariant in expectedAgentAssignments do
+    let fullPath = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar))
+    if not (File.Exists fullPath) then
+        error "agent-topology" path "Required semantic agent definition is missing"
+    else
+        match parseFrontmatter fullPath with
+        | None -> ()
+        | Some(_, values) ->
+            match values.TryGetValue "model" with
+            | true, model when model = expectedModel -> ()
+            | true, model -> error "agent-model" path $"Expected model '{expectedModel}' but found '{model}'"
+            | _ -> error "agent-model" path $"Missing model; expected '{expectedModel}'"
+
+            match values.TryGetValue "variant" with
+            | true, variant when variant = expectedVariant -> ()
+            | true, variant -> error "agent-variant" path $"Expected variant '{expectedVariant}' but found '{variant}'"
+            | _ -> error "agent-variant" path $"Missing variant; expected '{expectedVariant}'"
+
+for role in languageRoles do
+    let assignments =
+        languageTeams
+        |> List.choose (fun team ->
+            let path = $"agents/software/{team}/{role}.md"
+            let fullPath = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar))
+            if not (File.Exists fullPath) then
+                None
+            else
+                match parseFrontmatter fullPath with
+                | Some(_, values) ->
+                    let model = match values.TryGetValue "model" with | true, value -> value | _ -> ""
+                    let variant = match values.TryGetValue "variant" with | true, value -> value | _ -> ""
+                    Some(path, model, variant)
+                | None -> None)
+
+    let distinctAssignments =
+        assignments
+        |> List.map (fun (_, model, variant) -> model, variant)
+        |> List.distinct
+
+    if distinctAssignments.Length > 1 then
+        let paths = assignments |> List.map (fun (path, _, _) -> path) |> String.concat ", "
+        error "team-consistency" paths $"Language teams disagree on '{role}' model or variant"
 
 let obsoleteTeamRule = Path.Combine(root, "rules", "software", "team.md")
 if File.Exists obsoleteTeamRule then
@@ -746,7 +1095,7 @@ requireMarkers
 
 requireMarkers
     "audit-convergence"
-    "skills/audit-infra/SKILL.md"
+    "skills/audit/SKILL.md"
     [ "accepts a finite scope"
       "freezes the smallest sufficient solution"
       "Already explicitly authorized frozen batches may execute"
@@ -754,15 +1103,63 @@ requireMarkers
       "at most two remediation passes"
       "generic re-review of a frozen result as Verification" ]
 
+requireMarkers
+    "discovery-routing"
+    "skills/task/references/agent-gates.md"
+    [ "only the language `reviewer` is mandatory"
+      "`reviewer`, `guardian`, and `validator` are selected independently"
+      "language-matching `architect` and `challenger`"
+      "`database/reviewer`"
+      "`database/engineer`"
+      "`routine`"
+      "`contract`"
+      "`architecture`"
+      "`combined`"
+      "`executor`"
+      "`general`" ]
+
+for scenario in requiredRoutingScenarios do
+    let assignment = routingFor scenario
+    if assignment = emptyRouting then
+        error "routing-scenario" "skills/audit/scripts/ValidateInfrastructure.fsx" $"Required routing scenario '{scenario}' is not encoded"
+    else
+        for role in List.distinct (assignment.Design @ assignment.Implementation @ assignment.Tests @ assignment.Discovery) do
+            for path in routedAgentFiles role do
+                let fullPath = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar))
+                if not (File.Exists fullPath) then
+                    error "routing-agent" path $"Routing scenario '{scenario}' requires missing agent '{role}'"
+
+requireMarkers
+    "engineer-ownership"
+    "rules/software/agent-handoff.md"
+    [ "own production implementation and"
+      "the single build point"
+      "Do not automatically substitute another"
+      "paid provider" ]
+
+requireMarkers
+    "spec-scenarios"
+    "skills/audit/references/behavioral-evaluation.md"
+    [ "S11. Routine Discovery selects only reviewer"
+      "S12. Architecture risk selects independent review trio"
+      "S13. Provider exhaustion has no paid fallback" ]
+
+for engineerPath in
+    [ for team in languageTeams do
+          yield $"agents/software/{team}/engineer.md"
+      yield "agents/software/database/engineer.md"
+      yield "agents/software/devops/engineer.md" ] do
+    requireMarkers "engineer-handoff" engineerPath [ "agent-handoff.md" ]
+
 let reviewerMandates =
     [ "dotnet/csharp", "C#"
       "dotnet/fsharp", "F#"
       "rust", "Rust" ]
 
 let mandateRequirements =
-    [ 1, [ "Primary mandate:"; "behavioral correctness"; "regressions"; "error handling" ]
-      2, [ "Primary mandate:"; "frozen architecture"; "dependency direction"; "accidental complexity" ]
-      3, [ "Primary mandate:"; "contracts"; "acceptance criteria"; "test adequacy" ] ]
+    [ "reviewer", [ "Primary mandate:"; "behavioral correctness"; "regressions"; "error handling" ]
+      "guardian", [ "Primary mandate:"; "frozen architecture"; "dependency direction"; "accidental complexity" ]
+      "validator", [ "Primary mandate:"; "contracts"; "acceptance criteria"; "test adequacy" ] ]
 
 let duplicateMandatePaths mandates =
     mandates
@@ -774,26 +1171,26 @@ let duplicateMandatePaths mandates =
     |> Seq.toList
 
 for languagePath, languageName in reviewerMandates do
-    let mandates = ResizeArray<int * string * string>()
+    let mandates = ResizeArray<string * string * string>()
 
-    for reviewerNumber, markers in mandateRequirements do
-        let path = $"agents/software/{languagePath}/reviewer-{reviewerNumber}.md"
+    for reviewerRole, markers in mandateRequirements do
+        let path = $"agents/software/{languagePath}/{reviewerRole}.md"
         let fullPath = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar))
 
         if not (File.Exists fullPath) then
-            error "reviewer-mandate" path $"Supported {languageName} reviewer {reviewerNumber} definition is missing"
+            error "reviewer-mandate" path $"Supported {languageName} {reviewerRole} definition is missing"
         else
             let content = File.ReadAllText fullPath
             for marker in markers do
                 if not (containsMarker marker content) then
-                    error "reviewer-mandate" path $"Reviewer {reviewerNumber} is missing required mandate marker '{marker}'"
+                    error "reviewer-mandate" path $"{reviewerRole} is missing required mandate marker '{marker}'"
 
             let mandate =
                 Regex.Match(content, @"(?im)^Primary mandate:\s*(?<mandate>.+)$")
                 |> fun matched -> if matched.Success then matched.Groups.["mandate"].Value else ""
                 |> fun value -> Regex.Replace(value.ToLowerInvariant(), @"\s+", " ").Trim()
 
-            mandates.Add(reviewerNumber, path, mandate)
+            mandates.Add(reviewerRole, path, mandate)
 
     for reviewerPaths in duplicateMandatePaths mandates do
         error "reviewer-mandate" (String.concat ", " reviewerPaths) $"Supported {languageName} reviewer mandates must be distinct"
@@ -837,6 +1234,12 @@ requireMarkers
       "solutionContractHeading"
       "reviewHeading"
       "validReviewStates"
+      "discoveryReviewProfiles"
+      "reviewProfileConstraint"
+      "routine"
+      "contract"
+      "architecture"
+      "combined"
       "behavioralSpecReferencePrefix"
       "Architecture routed per `references/agent-gates.md`; independent proposals used only when that gate requires them, then coordinator solution frozen"
       "Engineer-owned implementation completed"
@@ -864,6 +1267,7 @@ requireMarkers
       "requiredCodeGateLabels"
       "requiredDesignGateLabels"
       "validReviewStates"
+      "reviewProfileConstraint"
       "Not applicable:"
       "Waived:"
       "hasRecordedWaiver" ]
@@ -898,6 +1302,33 @@ for file in liveInfrastructureFiles do
     let content = File.ReadAllText file
     for route in removedRouteMatches content do
         error "removed-route-reference" (relativePath file) $"Live infrastructure references removed route '{route}'"
+
+    for obsolete in obsoleteLiveMatches content do
+        error "obsolete-reference" (relativePath file) $"Live infrastructure references obsolete identifier '{obsolete}'"
+
+let assignedProductionModels =
+    seq {
+        for path, model, _ in expectedAgentAssignments do
+            let fullPath = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar))
+            if File.Exists fullPath then yield model
+
+        if File.Exists configPath then
+            try
+                use document = JsonDocument.Parse(File.ReadAllText configPath)
+                match tryProperty "model" document.RootElement with
+                | Some model when model.ValueKind = JsonValueKind.String -> yield model.GetString()
+                | _ -> ()
+
+                match tryProperty "small_model" document.RootElement with
+                | Some model when model.ValueKind = JsonValueKind.String -> yield model.GetString()
+                | _ -> ()
+            with _ ->
+                ()
+    }
+    |> Set.ofSeq
+
+for missing in Set.difference productionModels assignedProductionModels do
+    error "production-model" "agents" $"Required production model '{missing}' is not assigned"
 
 let normalizedRoot = root.Replace("\\", "/").TrimEnd('/')
 let knownRouteRoots = [ "agents/"; "commands/"; "lib/"; "plugins/"; "references/"; "rules/"; "scripts/"; "skills/" ]

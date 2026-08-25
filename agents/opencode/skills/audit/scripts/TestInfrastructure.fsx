@@ -46,10 +46,10 @@ let taskWorkflowTimeoutMs = 1200000
 
 let steps: Step list =
     [ { Label = "infrastructure validation self-test"
-        Command = """dotnet fsi skills/audit-infra/scripts/ValidateInfrastructure.fsx --self-test"""
+        Command = """dotnet fsi skills/audit/scripts/ValidateInfrastructure.fsx --self-test"""
         TimeoutMs = defaultTimeoutMs }
       { Label = "infrastructure validation live"
-        Command = """dotnet fsi skills/audit-infra/scripts/ValidateInfrastructure.fsx"""
+        Command = """dotnet fsi skills/audit/scripts/ValidateInfrastructure.fsx"""
         TimeoutMs = defaultTimeoutMs }
       { Label = "task markdown lifecycle tests"
         Command = """dotnet fsi skills/task/scripts/TaskMdTests.fsx"""

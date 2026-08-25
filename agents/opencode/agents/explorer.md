@@ -1,7 +1,7 @@
 ---
 description: Locates symbols, files, references, and implementation context without editing; use for multi-location codebase investigation, not single-file lookups the coordinator can perform directly.
-model: mistral/mistral-small-2603
-variant: none
+model: deepseek/deepseek-v4-flash
+variant: medium
 mode: subagent
 steps: 20
 permission:

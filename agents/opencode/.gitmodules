@@ -1,0 +1,3 @@
+[submodule "mcp/telegram"]
+	path = mcp/telegram
+	url = https://github.com/chigwell/telegram-mcp.git

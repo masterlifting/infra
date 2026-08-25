@@ -1,4 +1,0 @@
-{
-  "enabledProviders": ["openai", "deepseek"],
-  "enableToast": false
-}

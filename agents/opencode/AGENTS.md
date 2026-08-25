@@ -51,6 +51,8 @@ You help me in coding and automate my life using this and local opencode infrast
 ## Agent configuration consistency
 
 - Keep agent definitions file-based under `agents/**/*.md` for both global and local OpenCode infrastructure.
+- Agent IDs are the semantic file names; do not keep numbered aliases or stale role names.
+- Agent frontmatter is the sole model-assignment source. If an assigned provider is unavailable, return control to the user; do not automatically fall back to another paid provider.
 - Do not define or maintain inline agent blocks in `opencode.json` when an `agents/*.md` definition exists (or should exist).
 - When adding/changing an agent, update the corresponding file in `agents/` rather than `opencode.json`.
 - Do not edit `opencode.json`, `AGENTS.md`, or files under `agents/`, `rules/`, `commands/`, or `skills/` without explicit per-turn user instruction. If unsure, output the diff for manual application.

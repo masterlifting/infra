@@ -59,7 +59,14 @@ let acceptedFindingsHeading = "### Accepted findings"
 let verificationReceiptsHeading = "### Verification receipts"
 let validSolutionStates = Set.ofList [ "DRAFT"; "FROZEN" ]
 let validReviewStates = Set.ofList [ "NEW"; "DISCOVERY"; "REMEDIATION"; "VERIFICATION"; "FROZEN" ]
-let validReviewProfiles = Set.ofList [ "TBD"; "Standard"; "Full / architecture-sensitive" ]
+let discoveryReviewProfiles = [ "routine"; "contract"; "architecture"; "combined" ]
+let validReviewProfileValues = "TBD" :: discoveryReviewProfiles
+let validReviewProfiles = Set.ofList validReviewProfileValues
+
+let reviewProfileConstraint =
+    let leading = validReviewProfileValues |> List.take (validReviewProfileValues.Length - 1) |> String.concat ", "
+    $"{leading}, or {List.last validReviewProfileValues}"
+
 let validFindingStatuses = Set.ofList [ "PENDING"; "FIXED"; "NOT FIXED"; "REGRESSION INTRODUCED" ]
 let validVerificationResults = Set.ofList [ "APPROVE"; "FIXED"; "NOT FIXED"; "REGRESSION INTRODUCED" ]
 let validFindingVerificationResults = Set.ofList [ "FIXED"; "NOT FIXED"; "REGRESSION INTRODUCED" ]

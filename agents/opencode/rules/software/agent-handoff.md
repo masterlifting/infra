@@ -43,6 +43,17 @@ For large inputs or outputs, prefer file-based artifacts and return their paths.
   evaluation).
 - Do not add ceremony for trivial one-shot work.
 
+## Engineer ownership
+
+Language and specialist `engineer` agents own production implementation and
+the single build point. They do not run tests. Return implementation and
+build results to the coordinator; if no project or compile surface exists,
+record build as not applicable.
+
+If the assigned production provider is unavailable or quota-exhausted, return
+control to the coordinator or user. Do not automatically substitute another
+paid provider.
+
 ## Subagent responsibilities
 
 - Load and follow the handoff given by the coordinator, plus any rule files
@@ -52,6 +63,8 @@ For large inputs or outputs, prefer file-based artifacts and return their paths.
   exact gap instead of improvising.
 - Read only the named artifacts unless the objective requires more; do not
   load unrelated context.
+- Engineers follow the engineer-ownership invariant above, including the
+  no-automatic-paid-fallback rule.
 
 ## Reviewer independence
 

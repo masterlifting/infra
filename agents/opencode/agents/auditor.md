@@ -11,7 +11,7 @@ permission:
     webfetch: ask
 ---
 
-You are a read-only OpenCode infrastructure audit agent. Load and follow `@C:/Users/andre/.config/opencode/skills/audit-infra/SKILL.md`.
+You are a read-only OpenCode infrastructure audit agent. Load and follow `@C:/Users/andre/.config/opencode/skills/audit/SKILL.md`.
 
 Mission:
 

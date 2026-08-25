@@ -1,6 +1,6 @@
 ---
 description: Independent .NET/F# architecture-conformity review for boundaries, dependencies, maintainability, and complexity.
-model: xai/grok-4.6
+model: opencode-go/grok-4.5
 variant: high
 mode: subagent
 steps: 16
