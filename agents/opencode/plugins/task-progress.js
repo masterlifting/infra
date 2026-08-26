@@ -6,15 +6,18 @@ import { existsSync, realpathSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
-import { createTaskQueue, extractTaskFiles } from "../lib/task-progress-core.mjs"
+import { createTaskQueue, createTaskSynchronizer, extractTaskFiles } from "../lib/task-progress-core.mjs"
 
 const execFileAsync = promisify(execFile)
 const configRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
-const recomputeScript = resolve(configRoot, "skills/task/scripts/RecomputeProgress.fsx")
-const validateScript = resolve(configRoot, "skills/task/scripts/ValidateTask.fsx")
-const runScript = async (script, taskFile, projectRoot) => {
+const syncScript = resolve(configRoot, "skills/task/scripts/ValidateTask.fsx")
+
+// One bounded FSI process per task sync: ValidateTask.fsx --sync recomputes progress
+// then validates the result in the same invocation. Timeout and output caps bound the
+// process; failures resolve to findings and are never thrown to the edit.
+const runSyncScript = async (taskFile, projectRoot) => {
   try {
-    const { stdout } = await execFileAsync("dotnet", ["fsi", script, taskFile], {
+    const { stdout } = await execFileAsync("dotnet", ["fsi", syncScript, taskFile, "--sync"], {
       encoding: "utf8",
       cwd: projectRoot,
       timeout: 10000,
@@ -30,23 +33,7 @@ const runScript = async (script, taskFile, projectRoot) => {
   }
 }
 
-const synchronizeTask = async (taskFile, projectRoot) => {
-  const findings = []
-  const recompute = await runScript(recomputeScript, taskFile, projectRoot)
-  const validation = await runScript(validateScript, taskFile, projectRoot)
-
-  if (!recompute.ok) findings.push("- Progress recomputation helper failed or timed out")
-  const hasViolations = validation.output.includes("VIOLATIONS")
-  if (!validation.ok && !hasViolations) findings.push("- Task validation helper failed or timed out")
-  if (!hasViolations) return findings
-
-  return findings.concat(validation.output
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("- "))
-    .slice(0, 10)
-    .map((line) => line.replace(/[\u0000-\u001f\u007f`]/g, "?").slice(0, 300)))
-}
+const synchronizeTask = createTaskSynchronizer({ runScript: runSyncScript })
 
 const { enqueueTask } = createTaskQueue({
   synchronizeTask,

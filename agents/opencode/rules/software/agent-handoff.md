@@ -41,14 +41,31 @@ For large inputs or outputs, prefer file-based artifacts and return their paths.
 - Use fresh/isolated subagent context where supported and materially beneficial
   (e.g., independent architecture proposals, reviewer Discovery, behavioral
   evaluation).
+- Batch TASK.md state coherently: recompute then validate each batch, and keep
+  the durability boundary explicit — validated TASK.md facts are durable, while
+  transient scratch state is not.
+- Dispatch only already-required independent waves in parallel (architecture
+  proposals, independent implementation slices, Discovery reviewers, independent
+  remediation items, targeted Verification); keep dependent chains ordered.
 - Do not add ceremony for trivial one-shot work.
 
 ## Engineer ownership
 
-Language and specialist `engineer` agents own production implementation and
-the single build point. They do not run tests. Return implementation and
-build results to the coordinator; if no project or compile surface exists,
-record build as not applicable.
+Language testers own applicable test design, implementation, and execution
+(see `@C:/Users/andre/.config/opencode/rules/software/testing.md`); engineers
+do not run tests. Language and specialist `engineer` agents own production implementation and
+the single build point, plus implementation-native plan, static, and
+configuration validation. Return implementation and build results
+to the coordinator; if no project or compile surface exists, record build as
+not applicable. When no applicable language tester exists, the implementation
+owner owns the required tests for its assigned surface.
+
+Engineers must not independently redesign a frozen solution. If implementation
+encounters a hard invalidation condition (the design cannot satisfy an
+acceptance criterion, contains a blocking correctness/security/data-integrity
+defect, materially misunderstands a required external contract, or is
+technically impossible under an approved constraint), return `BLOCKED` to the
+coordinator with evidence and stop; do not redesign.
 
 If the assigned production provider is unavailable or quota-exhausted, return
 control to the coordinator or user. Do not automatically substitute another

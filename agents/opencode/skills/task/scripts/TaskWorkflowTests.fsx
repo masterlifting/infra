@@ -33,6 +33,9 @@ let assertContains name (expected: string) (actual: string) =
     if not (actual.Contains(expected, StringComparison.OrdinalIgnoreCase)) then
         failwithf "%s: expected output containing %A, got %A" name expected actual
 
+let assertEqual name expected actual =
+    if actual <> expected then failwithf "%s: expected %A, got %A" name expected actual
+
 let synchronizeProgress (text: string) =
     let completed, total = text.Split([| "\r\n"; "\n" |], StringSplitOptions.None) |> ResizeArray |> computeProgress
     Regex.Replace(text, @"\*\*Progress:\s*\d+/\d+", $"**Progress: {completed}/{total}")
@@ -955,6 +958,91 @@ try
     assertTrue "Unblock condition not found in References" unblockConditionInReferences
 
     printfn "OK Unblock condition semantics and regression coverage"
+
+    // Automatic synchronization (`ValidateTask.fsx --sync`): one FSI invocation
+    // recomputes the progress counter from checkbox state and then validates the
+    // resulting content in the same process. Plain validation must still flag the
+    // drift so the sync path is what absorbs it; a real violation must survive the
+    // recompute and be surfaced after it.
+    let checkStep (stepMarker: string) (text: string) =
+        let pattern = $"(?m)^- \[ \] {Regex.Escape stepMarker}\r?\n  - Summary:$"
+        let updated =
+            Regex.Replace(text, pattern, $"- [x] {stepMarker}{Environment.NewLine}  - Summary: Research evidence recorded")
+        if updated = text then failwithf "fixture step marker missing: %s" stepMarker
+        updated
+
+    let syncPath = Path.Combine(fixtureRoot, ".tasks", "TASK-102", "TASK.md")
+    let staleProgressText =
+        codeTaskWithOrigin
+        |> checkStep "Investigate relevant code paths and document findings"
+        |> checkStep "Define expected behavior and constraints"
+        |> checkStep "Draft task-specific delivery and validation work; for code tasks, classify implementation as complex or non-complex"
+    File.WriteAllText(syncPath, staleProgressText)
+
+    let driftValidation = runFsi fixtureRoot validateScript [ syncPath ]
+    assertTrue "stale progress was not flagged by plain validation" (driftValidation.ExitCode <> 0)
+    assertContains "stale progress drift diagnostic" "Progress drift" driftValidation.Output
+
+    let syncValidation = runFsi fixtureRoot validateScript [ syncPath; "--sync" ]
+    assertTrue ("sync recompute-then-validate failed: " + syncValidation.Output) (syncValidation.ExitCode = 0)
+
+    let progressHeader (text: string) =
+        text.Split([| "\r\n"; "\n" |], StringSplitOptions.None)
+        |> Array.find (fun line -> line.StartsWith "**Progress:")
+    assertEqual
+        "sync rewrote the progress header on disk"
+        (progressHeader (synchronizeProgress staleProgressText))
+        (progressHeader (File.ReadAllText syncPath))
+
+    let postSyncValidation = runFsi fixtureRoot validateScript [ syncPath ]
+    assertTrue ("post-sync plain validation failed: " + postSyncValidation.Output) (postSyncValidation.ExitCode = 0)
+
+    // A violation that recompute cannot fix (a broken C0 heading) must still be
+    // reported after the recompute, and the recompute itself must be durable.
+    let violationAfterSyncText =
+        staleProgressText.Replace("### C0. Pre-commit review board", "### C0 Pre-commit review board", StringComparison.Ordinal)
+    File.WriteAllText(syncPath, violationAfterSyncText)
+    let syncViolationValidation = runFsi fixtureRoot validateScript [ syncPath; "--sync" ]
+    assertTrue "sync surfaced no violation for a broken closing step" (syncViolationValidation.ExitCode <> 0)
+    assertContains "sync post-recompute violation diagnostic" "missing required closing step C0" syncViolationValidation.Output
+    assertEqual
+        "sync recomputed progress before surfacing the violation"
+        (progressHeader (synchronizeProgress violationAfterSyncText))
+        (progressHeader (File.ReadAllText syncPath))
+    assertTrue "sync lost the unfixable violation on disk" (File.ReadAllText(syncPath).Contains("### C0 Pre-commit review board", StringComparison.Ordinal))
+
+    let repeatSyncValidation = runFsi fixtureRoot validateScript [ syncPath; "--sync" ]
+    assertTrue "repeat sync did not keep reporting the violation" (repeatSyncValidation.ExitCode <> 0)
+
+    // Accepted finding F1: a write failure during --sync must be captured and
+    // surfaced as a bounded `progress synchronization failed` violation while
+    // validation still runs on the current content (drift stays visible), and
+    // restoring the writable state lets the next sync converge.
+    let writeFailureText = staleProgressText
+    let staleProgressHeader = progressHeader writeFailureText
+    File.WriteAllText(syncPath, writeFailureText)
+    let staleAttributes = File.GetAttributes syncPath
+    File.SetAttributes(syncPath, staleAttributes ||| FileAttributes.ReadOnly)
+    let writeFailureSyncValidation = runFsi fixtureRoot validateScript [ syncPath; "--sync" ]
+    File.SetAttributes(syncPath, File.GetAttributes syncPath &&& ~~~FileAttributes.ReadOnly)
+    assertTrue "write-failure fixture left the task file read-only" (not (File.GetAttributes(syncPath).HasFlag FileAttributes.ReadOnly))
+    assertTrue "write-failure sync surfaced no violation" (writeFailureSyncValidation.ExitCode <> 0)
+    assertContains "write-failure sync diagnostic" "progress synchronization failed" writeFailureSyncValidation.Output
+    assertContains "write-failure drift diagnostic" "Progress drift" writeFailureSyncValidation.Output
+    assertTrue "write-failure sync crashed instead of reporting a violation" (not (writeFailureSyncValidation.Output.Contains("Unhandled exception", StringComparison.OrdinalIgnoreCase)))
+    assertEqual
+        "write-failure sync wrote despite the failed attempt"
+        staleProgressHeader
+        (progressHeader (File.ReadAllText syncPath))
+
+    let retrySyncValidation = runFsi fixtureRoot validateScript [ syncPath; "--sync" ]
+    assertTrue ("retry sync after restoring writable state failed: " + retrySyncValidation.Output) (retrySyncValidation.ExitCode = 0)
+    assertEqual
+        "retry sync did not converge the progress counter"
+        (progressHeader (synchronizeProgress writeFailureText))
+        (progressHeader (File.ReadAllText syncPath))
+
+    printfn "OK automatic sync recompute-then-validate semantics"
 
     printfn "OK task creation, validation, and stale-write safety"
 finally

@@ -61,7 +61,7 @@ These scripts are intentionally outside the `scripts/*.fsx` helper-index scope, 
 
 ```text
 skills/task/scripts/RecomputeProgress.fsx | recompute the TASK.md progress counter from checkbox state
-skills/task/scripts/ValidateTask.fsx      | validate TASK.md invariants (--fix to auto-repair)
+skills/task/scripts/ValidateTask.fsx      | validate TASK.md invariants (--fix to auto-repair; --sync to recompute then validate in one pass)
 skills/task/scripts/CreateTask.fsx        | create a canonical task safely without overwriting an existing TASK.md
 skills/task/scripts/TaskMd.fsx             | shared TASK.md parsing and progress helpers
 skills/task/scripts/TaskMdTests.fsx        | test TASK.md parsing and progress helpers

@@ -390,6 +390,22 @@ let computeProgress (lines: ResizeArray<string>) =
 
     x, n
 
+/// Rewrite every `**Progress:` line's X/N counter to the freshly computed values,
+/// returning (completed, total, changed). Single source for the progress-line
+/// format shared by RecomputeProgress.fsx and ValidateTask.fsx --sync, so the
+/// automatic-sync paths can never disagree on how the header is written.
+let syncProgressCounters (lines: ResizeArray<string>) =
+    let x, n = computeProgress lines
+    let mutable updated = false
+    for i in 0 .. lines.Count - 1 do
+        let line = lines.[i]
+        if line.StartsWith "**Progress:" then
+            let replaced = Regex.Replace(line, @"Progress:\s*\d+/\d+", sprintf "Progress: %d/%d" x n)
+            if replaced <> line then
+                lines.[i] <- replaced
+                updated <- true
+    x, n, updated
+
 let tryWriteAllLinesIfUnchanged (path: string) (original: string array) (updated: ResizeArray<string>) =
     try
         use stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)

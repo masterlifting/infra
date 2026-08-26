@@ -1,7 +1,9 @@
 // Validate a TASK.md against the invariants in references/validation.md.
 // Usage:
-//   dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/ValidateTask.fsx" <path-to-TASK.md> [--fix]
+//   dotnet fsi "C:/Users/andre/.config/opencode/skills/task/scripts/ValidateTask.fsx" <path-to-TASK.md> [--fix] [--sync]
 // Exit 0 = clean; 1 = violations found; 2 = bad invocation.
+// --sync recomputes progress first (single source: TaskMd.fsx), then validates the
+// resulting file in this same process — the automatic plugin's single FSI invocation.
 
 open System
 open System.IO
@@ -12,10 +14,11 @@ open TaskMd // shared heading detection + progress counting (single source of tr
 
 let args = fsi.CommandLineArgs |> Array.skip 1
 if args.Length < 1 then
-    eprintfn "usage: ValidateTask.fsx <TASK.md> [--fix]"
+    eprintfn "usage: ValidateTask.fsx <TASK.md> [--fix] [--sync]"
     exit 2
 
 let fix = args |> Array.contains "--fix"
+let sync = args |> Array.contains "--sync"
 let path =
     match tryResolveTaskPath (Directory.GetCurrentDirectory()) args.[0] with
     | Ok resolved -> resolved
@@ -24,10 +27,36 @@ let path =
         exit 2
 
 let folder = Path.GetFileName(Path.GetDirectoryName path)
-let raw = File.ReadAllLines path
+
+// --sync: recompute progress first (TaskMd.syncProgressCounters), then re-read and
+// validate the resulting file in this same process. The write is best-effort so a
+// concurrent edit never crashes the sync; validation still runs on current content.
+// A failed recompute/write is captured (not discarded) and surfaced below through the
+// same finding path as content violations, so the plugin still reports it.
+let recomputeForSync (path: string) =
+    let mutable failure : string option = None
+    try
+        let original = File.ReadAllLines path
+        let lines = ResizeArray original
+        let _, _, updated = syncProgressCounters lines
+        if updated then
+            match tryWriteAllLinesIfUnchanged path original lines with
+            | Ok () -> ()
+            | Error message -> failure <- Some message
+    with ex ->
+        failure <- Some ex.Message
+    File.ReadAllLines path, failure
+
+let raw, syncFailure = if sync then recomputeForSync path else (File.ReadAllLines path, None)
 let mutable lines = ResizeArray(raw)
 let mutable violations = ResizeArray<string>()
 let report msg = violations.Add msg
+
+// Surface a bounded synchronization-helper failure diagnostic instead of silently
+// discarding it; content validation still runs below on the current on-disk content.
+match syncFailure with
+| Some message -> report (sprintf "progress synchronization failed: %s" message)
+| None -> ()
 
 // 1. H1 matches folder name; hyphen or em-dash separator
 let h1 = lines |> Seq.tryFind (fun l -> l.StartsWith "# ")

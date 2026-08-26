@@ -155,10 +155,11 @@ Fail: condition that must not hold
 - Pass: `guardian` and `validator` are not invoked for the routine change.
 - Fail: a fixed numbered ensemble or extra language reviewers run by default.
 
-### S12. Architecture risk selects independent review trio
+### S12. Combined risk selects independent review trio
 
 - Setup: a change that materially affects frozen architecture and acceptance
-  contracts has recorded evidence and Discovery is selected.
+  contracts has recorded evidence and Discovery is selected with the
+  `combined` review profile.
 - Expected: `reviewer`, `guardian`, and `validator` are selected independently.
 - Pass: all three semantic reviewers receive equivalent evidence and no
   peer findings.

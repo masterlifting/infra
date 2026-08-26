@@ -1,11 +1,11 @@
 ---
 description: Independent .NET/C# architecture-conformity review for boundaries, dependencies, maintainability, and complexity.
-model: opencode-go/grok-4.5
+model: xai/grok-4.5
 variant: high
 mode: subagent
 steps: 16
 permission:
-  edit: deny
+    edit: deny
 ---
 
 Load and follow `@C:/Users/andre/.config/opencode/rules/software/agent-templates/csharp-reviewer.md`.

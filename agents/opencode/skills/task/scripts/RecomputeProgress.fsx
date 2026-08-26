@@ -4,7 +4,6 @@
 
 open System
 open System.IO
-open System.Text.RegularExpressions
 
 #load "TaskMd.fsx"
 open TaskMd // shared heading detection + progress counting (single source of truth)
@@ -24,16 +23,7 @@ let path =
 let original = File.ReadAllLines path
 let lines = original |> ResizeArray
 
-let x, n = computeProgress lines
-
-let mutable updated = false
-for i in 0 .. lines.Count - 1 do
-    let l = lines.[i]
-    if l.StartsWith "**Progress:" then
-        let replaced = Regex.Replace(l, @"Progress:\s*\d+/\d+", sprintf "Progress: %d/%d" x n)
-        if replaced <> l then
-            lines.[i] <- replaced
-            updated <- true
+let x, n, updated = syncProgressCounters lines
 
 if updated then
     match tryWriteAllLinesIfUnchanged path original lines with

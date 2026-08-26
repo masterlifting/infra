@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { setTimeout as delay } from "node:timers/promises"
-import { createTaskQueue, extractTaskFiles, isTaskFile } from "./task-progress-core.mjs"
+import { createTaskQueue, createTaskSynchronizer, extractTaskFiles, extractViolationFindings, isTaskFile, sanitizeFindingLine } from "./task-progress-core.mjs"
 import { TaskProgress } from "../plugins/task-progress.js"
 
 assert.equal(isTaskFile("C:/repo/.tasks/BACK-1/TASK.md"), true)
@@ -77,4 +77,45 @@ assert.equal(recoveryQueue.size(), 0)
 const plugin = await TaskProgress({ directory: "C:/repo", worktree: "C:/repo" })
 assert.equal(typeof plugin["tool.execute.after"], "function", "plugin hook must load")
 
-console.log("OK task progress extraction, queue serialization, recovery, and plugin loading")
+// The hook must stay non-fatal for edits that do not resolve to an existing task
+// file: no findings, no output mutation, and no sync process spawned.
+const hook = plugin["tool.execute.after"]
+const untouchedOutput = { output: "original" }
+await hook({ tool: "edit", args: { filePath: "C:/repo/README.md" } }, untouchedOutput)
+assert.equal(untouchedOutput.output, "original", "non-task edits must not be touched by the hook")
+await hook({ tool: "edit", args: { filePath: "C:/repo/.tasks/BACK-1/TASK.md" } }, untouchedOutput)
+assert.equal(untouchedOutput.output, "original", "missing task files must not be touched by the hook")
+
+// Single-invocation synchronization: one FSI process per task sync, then sanitized
+// finding extraction with non-fatal failure isolation.
+let syncInvocations = 0
+const cleanSync = createTaskSynchronizer({
+  runScript: async () => {
+    syncInvocations += 1
+    return { ok: true, output: "OK fixture" }
+  },
+})
+assert.deepEqual(await cleanSync("C:/repo/.tasks/BACK-9/TASK.md", "C:/repo"), [])
+assert.equal(syncInvocations, 1, "synchronizer must run exactly one FSI process per sync")
+
+const violationFindings = await createTaskSynchronizer({
+  runScript: async () => ({
+    ok: false,
+    output: "VIOLATIONS in fixture\n  - finding one\n  - `raw` finding two\u0000",
+  }),
+})("C:/repo/.tasks/BACK-9/TASK.md", "C:/repo")
+assert.deepEqual(violationFindings, ["- finding one", "- ?raw? finding two?"])
+
+const failureFindings = await createTaskSynchronizer({
+  runScript: async () => ({ ok: false, output: "" }),
+})("C:/repo/.tasks/BACK-9/TASK.md", "C:/repo")
+assert.deepEqual(failureFindings, ["- Task synchronization helper failed or timed out"])
+
+assert.equal(sanitizeFindingLine("a`b\u0000c"), "a?b?c")
+assert.equal(sanitizeFindingLine("- " + "x".repeat(500)), "- " + "x".repeat(298))
+assert.deepEqual(
+  extractViolationFindings("OK ignored\n- first\nsecond line\n- third", 2),
+  ["- first", "- third"],
+)
+
+console.log("OK task progress extraction, queue serialization, recovery, single-invocation sync, and plugin loading")

@@ -146,4 +146,52 @@ try
 finally
     if Directory.Exists specFixtureRoot then Directory.Delete(specFixtureRoot, true)
 
-printfn "OK task markdown lifecycle parsing and ID validation"
+// syncProgressCounters is the single shared recompute helper used by both
+// RecomputeProgress.fsx and ValidateTask.fsx --sync. Every `**Progress:` line is
+// rewritten to the freshly computed X/N; the change flag reports whether any line
+// changed so callers can skip durable writes when nothing is stale.
+let syncFixture =
+    ResizeArray [
+        "# TEST-1 - Parser fixture"
+        "**Progress: 0/5 subtasks complete** | **Status: In Progress** | **Created: 2026-01-01**"
+        "## Subtasks"
+        "### 1. Complete task"
+        "- [x] Complete"
+        "### 2. Incomplete task"
+        "- [ ] Pending"
+        "## Closing Steps"
+        "### C1. Cleanup"
+        "- [x] Done"
+        "## Decisions"
+    ]
+
+let syncCompleted, syncTotal, syncChanged = syncProgressCounters syncFixture
+assertEqual "sync recompute counts" (2, 3, true) (syncCompleted, syncTotal, syncChanged)
+assertEqual
+    "sync rewrote the progress line"
+    "**Progress: 2/3 subtasks complete** | **Status: In Progress** | **Created: 2026-01-01**"
+    syncFixture.[1]
+
+let stableFixture = ResizeArray(syncFixture)
+let stableCompleted, stableTotal, stableChanged = syncProgressCounters stableFixture
+assertEqual "sync idempotent counts" (2, 3, false) (stableCompleted, stableTotal, stableChanged)
+assertEqual "sync idempotent keeps the header" syncFixture.[1] stableFixture.[1]
+
+let multiProgressFixture =
+    ResizeArray [
+        "**Progress: 0/1 subtasks complete** | **Status: In Progress** | **Created: 2026-01-01**"
+        "**Progress: 0/1 subtasks complete**"
+        "## Subtasks"
+        "### 1. Complete task"
+        "- [x] Complete"
+        "## Closing Steps"
+        "### C1. Cleanup"
+        "- [x] Done"
+        "## Decisions"
+    ]
+
+let _, _, multiChanged = syncProgressCounters multiProgressFixture
+assertEqual "sync rewrites every progress line" true multiChanged
+assertEqual "second progress line rewritten too" "**Progress: 2/2 subtasks complete**" multiProgressFixture.[1]
+
+printfn "OK task markdown lifecycle parsing, progress sync, and ID validation"

@@ -1,6 +1,6 @@
 ---
 description: Independent challenging .NET/F# architecture proposal for workflow composition, module boundaries, dependencies, public contracts, and system-design tradeoffs; isolated from the primary architect and does not run builds or tests. Use only as the second isolated proposal on complex or architecture-sensitive tasks.
-model: opencode-go/grok-4.5
+model: xai/grok-4.5
 variant: high
 mode: subagent
 steps: 20

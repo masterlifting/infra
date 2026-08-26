@@ -1,6 +1,6 @@
 ---
 description: .NET/C# engineering subagent that independently implements assigned production-code work and owns builds.
-model: deepseek/deepseek-v4-pro
+model: opencode-go/deepseek-v4-pro
 variant: high
 mode: subagent
 steps: 30

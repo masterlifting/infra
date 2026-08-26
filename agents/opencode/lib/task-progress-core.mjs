@@ -23,6 +23,35 @@ export const extractTaskFiles = (tool, args, directory, exists) => {
     .filter((path) => isTaskFile(path) && exists(path)))]
 }
 
+// Strip control characters and backticks from a finding line and bound its length,
+// so plugin diagnostics stay deterministic and never leak raw process noise.
+export const sanitizeFindingLine = (line) =>
+  line.replace(/[\u0000-\u001f\u007f`]/g, "?").slice(0, 300)
+
+// Extract the validator's `- <message>` finding bullets from its output, bounded to
+// `limit` lines. Headers, timestamps, and stack traces are ignored.
+export const extractViolationFindings = (output, limit = 10) =>
+  output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("- "))
+    .slice(0, limit)
+    .map(sanitizeFindingLine)
+
+// Build the single-invocation task synchronizer. `runScript` runs exactly one F#
+// sync process and resolves to `{ ok, output }`. Non-fatal: a failed or timed out
+// process with no validator output becomes one finding; validation findings are
+// surfaced without aborting the enclosing edit.
+export const createTaskSynchronizer = ({ runScript }) =>
+  async (taskFile, projectRoot) => {
+    const result = await runScript(taskFile, projectRoot)
+    const hasViolations = result.output.includes("VIOLATIONS")
+    const findings = []
+    if (!result.ok && !hasViolations) findings.push("- Task synchronization helper failed or timed out")
+    if (!hasViolations) return findings
+    return findings.concat(extractViolationFindings(result.output))
+  }
+
 export const createTaskQueue = ({ synchronizeTask, canonicalize, platform = process.platform }) => {
   const queues = new Map()
 

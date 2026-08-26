@@ -5,7 +5,7 @@ Canonical software-agent orchestration for code tasks. Gates are enforced throug
 Coordinator-to-subagent handoffs follow `@C:/Users/andre/.config/opencode/rules/software/agent-handoff.md`; do not duplicate its contract here.
 
 Language match: pick the team under `agents/software/` that matches the touched code - `dotnet/csharp`, `dotnet/fsharp`, or `rust`.
-The engineer owns production implementation and builds. The tester owns test analysis, implementation, and execution. The primary coordinator owns synthesis, triage, state transitions, and completion. Review is a single post-evidence Discovery activity, not a routine implementation gate.
+The engineer owns production implementation, builds, and implementation-native validation. The tester owns test design, implementation, and execution. The primary coordinator owns synthesis, triage, state transitions, and completion. Review is a single post-evidence Discovery activity, not a routine implementation gate.
 Use database, DevOps, security, or performance specialists only when concrete task or diff evidence materially affects their owned surface.
 For a language without a dedicated team, assign `executor` as the editable implementation/build/test owner and use `general` invocations for the architecture and review roles.
 
@@ -16,7 +16,7 @@ For a language without a dedicated team, assign `executor` as the editable imple
 | Design gate (subtask 3)     | complex or architecture-sensitive: language-matching `architect` and `challenger` (isolated, read-only, equivalent evidence); non-complex: defaults to coordinator design, with at most one appropriate `architect` for concrete unresolved uncertainty and no general design review | `devops/engineer` for DevOps-only work; `database/reviewer` if schema/migration planned; `security/reviewer` for sensitive surfaces |
 | Implementation and build | language-matching `engineer` | `database/engineer` for DB-heavy work; `devops/engineer` for CI/deploy work |
 | Tests                       | language-matching `tester` designs, implements, and runs tests   | If no tester exists, assign test work to the implementation owner                                                                        |
-| Discovery review | Review profile `routine`: only the language `reviewer` is mandatory. Review profiles `contract`, `architecture`, and `combined`: `reviewer`, `guardian`, and `validator` are selected independently. | Applicable specialist reviewers only |
+| Discovery review | Review profile `routine`: only the language `reviewer` is mandatory. `contract`: `reviewer` and `validator`. `architecture`: `reviewer` and `guardian`. `combined`: `reviewer`, `guardian`, and `validator`. Reviewers in a profile are selected independently. | Applicable specialist reviewers only, additive to the profile set |
 
 Complex or architecture-sensitive language tasks use language-matching `architect` and `challenger`: each receives the same evidence, works in isolation, and is read-only. The coordinator subtractively synthesizes the smallest sufficient design from the two proposals. Non-complex tasks default to the coordinator's own design; the coordinator invokes at most one appropriate `architect` only for concrete unresolved uncertainty, and never a general design review. The coordinator records requirements, acceptance criteria, assumptions, non-goals, boundaries, constraints, review profile, and relevant rejected alternatives, then freezes it.
 
@@ -37,7 +37,21 @@ Reviewers receive the same frozen solution, implementation baseline, and build/t
 
 - Applying findings follows `references/confirmation-policy.md`.
 - Non-code tasks (pure analysis, docs-only): drop software-agent gates at template generation.
-- Run independently approved gate agents in parallel when possible.
+- Dispatch only already-required independent waves in parallel; keep dependent chains ordered.
+
+## Parallel waves and state batching
+
+Parallelism is bounded to already-required independent waves:
+
+- Design: `architect` and `challenger` (isolated, read-only, equivalent frozen evidence).
+- Implementation: task-specific `Implement:` subtasks that are genuinely independent slices.
+- Discovery: the independently selected reviewers in the chosen profile.
+- Remediation: independent accepted findings within a bounded pass.
+- Verification: targeted receipts for independent accepted findings.
+
+Dependent chains stay strictly ordered: implementation → build → test → Discovery → remediation → Verification. Never parallelize dependent work.
+
+Batch TASK.md state coherently. Each batch recomputes progress then validates before it is durable (the automatic sync plugin performs this on every edit). Durability boundary: validated TASK.md facts are durable; in-flight proposals, drafts, and working notes are transient and must not be recorded as durable task state.
 
 ## Worktree policy
 

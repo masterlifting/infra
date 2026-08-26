@@ -371,7 +371,7 @@ let productionModels =
           "openai/gpt-5.6-sol"
           "deepseek/deepseek-v4-flash"
           "deepseek/deepseek-v4-pro"
-          "opencode-go/grok-4.5" ]
+          "xai/grok-4.5" ]
 
 let productionVariants = Set.ofList [ "low"; "medium"; "high" ]
 
@@ -389,11 +389,11 @@ let languageRoles =
 let languageRoleAssignment role =
     match role with
     | "architect" -> Some("openai/gpt-5.6-sol", "high")
-    | "challenger" -> Some("opencode-go/grok-4.5", "high")
+    | "challenger" -> Some("xai/grok-4.5", "high")
     | "engineer" -> Some("deepseek/deepseek-v4-pro", "high")
     | "tester" -> Some("deepseek/deepseek-v4-flash", "high")
     | "reviewer" -> Some("openai/gpt-5.6-luna", "high")
-    | "guardian" -> Some("opencode-go/grok-4.5", "high")
+    | "guardian" -> Some("xai/grok-4.5", "high")
     | "validator" -> Some("deepseek/deepseek-v4-flash", "high")
     | _ -> None
 
@@ -401,8 +401,8 @@ let sharedAgentAssignments =
     [ "agents/build.md", "openai/gpt-5.6-terra", "medium"
       "agents/auditor.md", "openai/gpt-5.6-luna", "medium"
       "agents/vision.md", "openai/gpt-5.6-terra", "medium"
-      "agents/explorer.md", "deepseek/deepseek-v4-flash", "medium"
-      "agents/executor.md", "deepseek/deepseek-v4-flash", "high"
+      "agents/explorer.md", "opencode-go/deepseek-v4-flash", "medium"
+      "agents/executor.md", "opencode-go/deepseek-v4-flash", "high"
       "agents/software/database/engineer.md", "deepseek/deepseek-v4-pro", "high"
       "agents/software/database/reviewer.md", "openai/gpt-5.6-luna", "high"
       "agents/software/devops/engineer.md", "deepseek/deepseek-v4-pro", "high"
@@ -412,7 +412,7 @@ let sharedAgentAssignments =
 
 let grokDiversityRoles = Set.ofList [ "challenger"; "guardian" ]
 let deepseekWorkerRoles = Set.ofList [ "explorer"; "executor"; "engineer"; "tester"; "validator" ]
-let grokDiversityModel = "opencode-go/grok-4.5"
+let grokDiversityModel = "xai/grok-4.5"
 let deepseekProviderPrefix = "deepseek/"
 
 let expectedAgentAssignments =
@@ -442,7 +442,11 @@ let emptyRouting =
       Tests = []
       Discovery = [] }
 
-let independentDiscoveryReviewers = [ "reviewer"; "guardian"; "validator" ]
+// Exact review-profile reviewer sets per the frozen INFRA-006 routing contract.
+let routineDiscoveryReviewers = [ "reviewer" ]
+let contractDiscoveryReviewers = [ "reviewer"; "validator" ]
+let architectureDiscoveryReviewers = [ "reviewer"; "guardian" ]
+let combinedDiscoveryReviewers = [ "reviewer"; "guardian"; "validator" ]
 
 let requiredRoutingScenarios =
     [ "routine"
@@ -452,7 +456,9 @@ let requiredRoutingScenarios =
       "database-only"
       "app+database"
       "devops-only"
+      "app+devops"
       "security-sensitive"
+      "performance-sensitive"
       "unsupported-language" ]
 
 let discoveryReviewProfiles = [ "routine"; "contract"; "architecture"; "combined" ]
@@ -463,22 +469,22 @@ let routingFor =
         { Design = []
           Implementation = [ "engineer" ]
           Tests = [ "tester" ]
-          Discovery = [ "reviewer" ] }
+          Discovery = routineDiscoveryReviewers }
     | "contract" ->
         { Design = []
           Implementation = [ "engineer" ]
           Tests = [ "tester" ]
-          Discovery = independentDiscoveryReviewers }
+          Discovery = contractDiscoveryReviewers }
     | "architecture" ->
         { Design = [ "architect"; "challenger" ]
           Implementation = [ "engineer" ]
           Tests = [ "tester" ]
-          Discovery = independentDiscoveryReviewers }
+          Discovery = architectureDiscoveryReviewers }
     | "combined" ->
         { Design = [ "architect"; "challenger" ]
           Implementation = [ "engineer" ]
           Tests = [ "tester" ]
-          Discovery = independentDiscoveryReviewers }
+          Discovery = combinedDiscoveryReviewers }
     | "database-only" ->
         { Design = [ "database/reviewer" ]
           Implementation = [ "database/engineer" ]
@@ -494,11 +500,21 @@ let routingFor =
           Implementation = [ "devops/engineer" ]
           Tests = [ "devops/engineer" ]
           Discovery = [ "devops/reviewer" ] }
+    | "app+devops" ->
+        { Design = [ "devops/engineer" ]
+          Implementation = [ "engineer"; "devops/engineer" ]
+          Tests = [ "tester" ]
+          Discovery = [ "reviewer"; "devops/reviewer" ] }
     | "security-sensitive" ->
         { Design = [ "security/reviewer" ]
           Implementation = [ "engineer" ]
           Tests = [ "tester" ]
           Discovery = [ "reviewer"; "security/reviewer" ] }
+    | "performance-sensitive" ->
+        { Design = [ "performance/reviewer" ]
+          Implementation = [ "engineer" ]
+          Tests = [ "tester" ]
+          Discovery = [ "reviewer"; "performance/reviewer" ] }
     | "unsupported-language" ->
         { Design = [ "general" ]
           Implementation = [ "executor" ]
@@ -585,17 +601,23 @@ if selfTest then
         (requiredRoutingScenarios |> List.forall (fun scenario -> routingFor scenario <> emptyRouting))
     requireSelfTest "discovery profiles are risk-based sets" (discoveryReviewProfiles = [ "routine"; "contract"; "architecture"; "combined" ])
     requireSelfTest
+        "exact profile reviewer sets"
+        (routineDiscoveryReviewers = [ "reviewer" ]
+         && contractDiscoveryReviewers = [ "reviewer"; "validator" ]
+         && architectureDiscoveryReviewers = [ "reviewer"; "guardian" ]
+         && combinedDiscoveryReviewers = [ "reviewer"; "guardian"; "validator" ])
+    requireSelfTest
         "routine routing"
-        (routingFor "routine" = { Design = []; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = [ "reviewer" ] })
+        (routingFor "routine" = { Design = []; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = routineDiscoveryReviewers })
     requireSelfTest
         "contract routing"
-        (routingFor "contract" = { Design = []; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = independentDiscoveryReviewers })
+        (routingFor "contract" = { Design = []; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = contractDiscoveryReviewers })
     requireSelfTest
         "architecture routing"
-        (routingFor "architecture" = { Design = [ "architect"; "challenger" ]; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = independentDiscoveryReviewers })
+        (routingFor "architecture" = { Design = [ "architect"; "challenger" ]; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = architectureDiscoveryReviewers })
     requireSelfTest
         "combined routing"
-        (routingFor "combined" = { Design = [ "architect"; "challenger" ]; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = independentDiscoveryReviewers })
+        (routingFor "combined" = { Design = [ "architect"; "challenger" ]; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = combinedDiscoveryReviewers })
     requireSelfTest
         "database-only routing"
         (routingFor "database-only" = { Design = [ "database/reviewer" ]; Implementation = [ "database/engineer" ]; Tests = [ "database/engineer" ]; Discovery = [ "database/reviewer" ] })
@@ -606,11 +628,47 @@ if selfTest then
         "devops-only routing"
         (routingFor "devops-only" = { Design = [ "devops/engineer" ]; Implementation = [ "devops/engineer" ]; Tests = [ "devops/engineer" ]; Discovery = [ "devops/reviewer" ] })
     requireSelfTest
+        "app+devops routing"
+        (routingFor "app+devops" = { Design = [ "devops/engineer" ]; Implementation = [ "engineer"; "devops/engineer" ]; Tests = [ "tester" ]; Discovery = [ "reviewer"; "devops/reviewer" ] })
+    requireSelfTest
         "security-sensitive routing"
         (routingFor "security-sensitive" = { Design = [ "security/reviewer" ]; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = [ "reviewer"; "security/reviewer" ] })
     requireSelfTest
+        "performance-sensitive routing"
+        (routingFor "performance-sensitive" = { Design = [ "performance/reviewer" ]; Implementation = [ "engineer" ]; Tests = [ "tester" ]; Discovery = [ "reviewer"; "performance/reviewer" ] })
+    requireSelfTest
         "unsupported language/executor routing"
         (routingFor "unsupported-language" = { Design = [ "general" ]; Implementation = [ "executor" ]; Tests = [ "executor" ]; Discovery = [ "general" ] })
+    requireSelfTest
+        "database-only specialist without language reviewer"
+        ((routingFor "database-only").Discovery = [ "database/reviewer" ])
+    requireSelfTest
+        "devops-only specialist without language reviewer"
+        ((routingFor "devops-only").Discovery = [ "devops/reviewer" ])
+    requireSelfTest
+        "app+database language plus specialist"
+        ((routingFor "app+database").Discovery = [ "reviewer"; "database/reviewer" ])
+    requireSelfTest
+        "app+devops language plus specialist"
+        ((routingFor "app+devops").Discovery = [ "reviewer"; "devops/reviewer" ])
+    requireSelfTest
+        "security reviewer additive only"
+        ((routingFor "security-sensitive").Discovery = [ "reviewer"; "security/reviewer" ])
+    requireSelfTest
+        "performance reviewer additive only"
+        ((routingFor "performance-sensitive").Discovery = [ "reviewer"; "performance/reviewer" ])
+    requireSelfTest
+        "tester owns app tests"
+        ((routingFor "routine").Tests = [ "tester" ])
+    requireSelfTest
+        "database-only test fallback to implementation owner"
+        ((routingFor "database-only").Tests = [ "database/engineer" ])
+    requireSelfTest
+        "devops-only test fallback to implementation owner"
+        ((routingFor "devops-only").Tests = [ "devops/engineer" ])
+    requireSelfTest
+        "unsupported-language test fallback to executor"
+        ((routingFor "unsupported-language").Tests = [ "executor" ])
     requireSelfTest "unknown routing is empty" (routingFor "other" = emptyRouting)
     requireSelfTest "obsolete architecture-contract is not encoded" (routingFor "architecture-contract" = emptyRouting)
     requireSelfTest "obsolete Standard profile is not encoded" (routingFor "Standard" = emptyRouting)
@@ -641,6 +699,20 @@ if selfTest then
     requireSelfTest "engineer channel" (roleUsesAssignedChannel "engineer" "deepseek/deepseek-v4-pro")
     requireSelfTest "reviewer channel" (roleUsesAssignedChannel "reviewer" "openai/gpt-5.6-luna")
     requireSelfTest "wrong worker channel rejected" (not (roleUsesAssignedChannel "tester" grokDiversityModel))
+    requireSelfTest
+        "architect+challenger parallel wave only when both required"
+        (requiredRoutingScenarios |> List.forall (fun scenario ->
+            let design = (routingFor scenario).Design
+            let hasArchitect = List.contains "architect" design
+            let hasChallenger = List.contains "challenger" design
+            (hasArchitect = hasChallenger)
+            && (hasArchitect = (scenario = "architecture" || scenario = "combined"))))
+    requireSelfTest
+        "no duplicate agents within a parallel wave"
+        (requiredRoutingScenarios |> List.forall (fun scenario ->
+            let routing = routingFor scenario
+            [ routing.Design; routing.Implementation; routing.Tests; routing.Discovery ]
+            |> List.forall (fun agents -> List.length agents = List.length (List.distinct agents))))
     printfn "OK infrastructure validator self-test"
     exit 0
 
@@ -670,10 +742,10 @@ if File.Exists configPath then
         | _ -> error "production-model" "opencode.json" "Global model must be a verified production ID"
 
         match tryProperty "small_model" config with
-        | Some model when model.ValueKind = JsonValueKind.String && model.GetString() = "deepseek/deepseek-v4-flash" -> ()
+        | Some model when model.ValueKind = JsonValueKind.String && model.GetString() = "opencode-go/deepseek-v4-flash" -> ()
         | Some model when model.ValueKind = JsonValueKind.String ->
-            error "production-model" "opencode.json" $"Global small_model '{model.GetString()}' must be deepseek/deepseek-v4-flash"
-        | _ -> error "production-model" "opencode.json" "Global small_model must be deepseek/deepseek-v4-flash"
+            error "production-model" "opencode.json" $"Global small_model '{model.GetString()}' must be opencode-go/deepseek-v4-flash"
+        | _ -> error "production-model" "opencode.json" "Global small_model must be opencode-go/deepseek-v4-flash"
 
         let bashRules =
             tryProperty "permission" config
@@ -1080,7 +1152,8 @@ let canonicalReviewMarkers =
       "accepted finding set is finite and frozen"
       "Verification is not a fresh review"
       "generic request to review a frozen artifact means Verification"
-      "Automatic remediation is limited to two passes" ]
+      "Automatic remediation is limited to two passes"
+      "Do not run builds or tests" ]
 
 requireMarkers "review-convergence" "rules/software/review.md" canonicalReviewMarkers
 
@@ -1107,7 +1180,10 @@ requireMarkers
     "discovery-routing"
     "skills/task/references/agent-gates.md"
     [ "only the language `reviewer` is mandatory"
-      "`reviewer`, `guardian`, and `validator` are selected independently"
+      "`reviewer` and `validator`"
+      "`reviewer` and `guardian`"
+      "`reviewer`, `guardian`, and `validator`"
+      "selected independently"
       "language-matching `architect` and `challenger`"
       "`database/reviewer`"
       "`database/engineer`"
@@ -1117,6 +1193,41 @@ requireMarkers
       "`combined`"
       "`executor`"
       "`general`" ]
+
+requireMarkers
+    "task-batching"
+    "skills/task/SKILL.md"
+    [ "Batch TASK.md state updates coherently"
+      "recompute progress and validate before each batch is durable"
+      "Durability boundary: validated TASK.md facts are durable"
+      "in-session drafts, proposals, and working notes are transient"
+      "Parallelize only already-required independent waves"
+      "keep dependent chains (implementation → build → test → review → remediation) ordered" ]
+
+requireMarkers
+    "parallel-waves"
+    "skills/task/references/agent-gates.md"
+    [ "## Parallel waves and state batching"
+      "Dispatch only already-required independent waves in parallel"
+      "`architect` and `challenger` (isolated, read-only, equivalent frozen evidence)"
+      "task-specific `Implement:` subtasks that are genuinely independent slices"
+      "the independently selected reviewers in the chosen profile"
+      "Dependent chains stay strictly ordered"
+      "Never parallelize dependent work"
+      "Each batch recomputes progress then validates before it is durable"
+      "Durability boundary: validated TASK.md facts are durable" ]
+
+requireMarkers
+    "handoff-batching"
+    "rules/software/agent-handoff.md"
+    [ "Batch TASK.md state coherently"
+      "recompute then validate each batch"
+      "the durability boundary explicit"
+      "validated TASK.md facts are durable"
+      "transient scratch state is not"
+      "Dispatch only already-required independent waves in parallel"
+      "keep dependent chains ordered"
+      "Do not add ceremony for trivial one-shot work" ]
 
 for scenario in requiredRoutingScenarios do
     let assignment = routingFor scenario
@@ -1134,14 +1245,48 @@ requireMarkers
     "rules/software/agent-handoff.md"
     [ "own production implementation and"
       "the single build point"
+      "implementation-native plan"
+      "static"
+      "configuration validation"
+      "When no applicable language tester exists"
       "Do not automatically substitute another"
       "paid provider" ]
+
+requireMarkers
+    "engineer-frozen-solution"
+    "rules/software/agent-handoff.md"
+    [ "must not independently redesign a frozen solution"
+      "return `BLOCKED` to the"
+      "do not redesign" ]
+
+requireMarkers
+    "tester-ownership"
+    "rules/software/testing.md"
+    [ "normal owner of applicable test design"
+      "implementation, and execution"
+      "When no applicable language tester exists"
+      "the implementation owner owns the required tests"
+      "tester owns test execution for the whole task surface" ]
+
+requireMarkers
+    "specialist-surface"
+    "skills/task/references/agent-gates.md"
+    [ "Use database, DevOps, security, or performance specialists only when concrete task or diff evidence"
+      "materially affects their owned surface"
+      "Before Discovery, build and test evidence must be recorded"
+      "returns `BLOCKED` and does not review" ]
+
+requireMarkers
+    "devops-validation"
+    "agents/software/devops/engineer.md"
+    [ "own project-native plan, static, configuration, and build validation"
+      "distinct from tests" ]
 
 requireMarkers
     "spec-scenarios"
     "skills/audit/references/behavioral-evaluation.md"
     [ "S11. Routine Discovery selects only reviewer"
-      "S12. Architecture risk selects independent review trio"
+      "S12. Combined risk selects independent review trio"
       "S13. Provider exhaustion has no paid fallback" ]
 
 for engineerPath in
@@ -1158,7 +1303,7 @@ let reviewerMandates =
 
 let mandateRequirements =
     [ "reviewer", [ "Primary mandate:"; "behavioral correctness"; "regressions"; "error handling" ]
-      "guardian", [ "Primary mandate:"; "frozen architecture"; "dependency direction"; "accidental complexity" ]
+      "guardian", [ "Primary mandate:"; "frozen architecture"; "dependency direction"; "accidental complexity"; "Do not replace a valid frozen design" ]
       "validator", [ "Primary mandate:"; "contracts"; "acceptance criteria"; "test adequacy" ] ]
 
 let duplicateMandatePaths mandates =
