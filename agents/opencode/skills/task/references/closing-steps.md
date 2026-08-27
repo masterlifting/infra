@@ -11,14 +11,22 @@ Run after implementation, build, and tests. Review state follows `agent-gates.md
 
 ## C1. Clean up temporary artifacts
 
-Before committing, remove only temporary artifacts created for the task outside the target repositories. Every removal is Tier 1 and requires explicit confirmation.
+Before committing, remove only temporary artifacts created for the task outside the target repositories. Every removal is Tier 1 and requires explicit confirmation, except manifest-proven owned scratch (below).
+
+Owned task scratch is created and tracked by `skills/task/scripts/TaskScratch.fsx` under the machine-local canonical root `<temp>/opencode/tasks/<TASK-ID>/<RUN-ID>/`. It is the sole bounded deletion surface:
+
+- Promote durable evidence first (`promote` copies and byte-verifies into the current task's `docs/` or `scripts/`).
+- `seal` records that no active dependency remains; run it only after closeout review and verification complete.
+- `clean` deletes only manifest-registered, non-promoted file entries from a sealed, valid root, without per-file confirmation, and reports everything retained. A malformed, mismatched, escaped, or reparse manifest fails closed and deletes nothing. On non-Windows platforms every helper operation fails closed and nothing is deleted.
 
 **Remove:**
 
-- Working files created for this task under the session scratchpad or a temp dir (probe scripts, intermediate data, one-off outputs).
+- Manifest-registered disposable owned scratch (`TaskScratch.fsx clean` after `seal`) — automatic, no per-file confirmation.
+- Working files created for this task under the session scratchpad or a temp dir (probe scripts, intermediate data, one-off outputs) — explicit confirmation.
 
 **Never remove:**
 
+- Unknown, unregistered, promoted, reparse, or otherwise ambiguous scratch material — `clean` reports and retains it.
 - Source-tree files, including debug logging and stray files in touched repositories. Clean these before Discovery so review covers the intended diff.
 - The task's own `.tasks/<TASK-ID>/TASK.md`, `docs/`, and `scripts/` — these are intentional records.
 - Anything already committed as part of the change.

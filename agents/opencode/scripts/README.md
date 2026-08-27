@@ -66,6 +66,8 @@ skills/task/scripts/CreateTask.fsx        | create a canonical task safely witho
 skills/task/scripts/TaskMd.fsx             | shared TASK.md parsing and progress helpers
 skills/task/scripts/TaskMdTests.fsx        | test TASK.md parsing and progress helpers
 skills/task/scripts/TaskWorkflowTests.fsx  | integration-test task creation, validation, and stale-write safety
+skills/task/scripts/TaskScratch.fsx         | owned task scratch lifecycle: create/register/report/promote/seal/clean under <temp>/opencode/tasks/<TASK-ID>/<RUN-ID>/
+skills/task/scripts/TaskScratchTests.fsx     | deterministic black-box tests for the owned task scratch lifecycle helper
 skills/youtrack/scripts/YouTrackRest.fsx   | YouTrack REST helper used by the youtrack skill
 skills/audit/scripts/ValidateInfrastructure.fsx | validate global OpenCode infrastructure structure and DRY invariants
 skills/documents/scripts/OfficeDocuments.fsx | convert simple Markdown/DOCX and CSV/JSON/XLSX files for ONLYOFFICE

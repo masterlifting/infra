@@ -208,11 +208,13 @@ After work, use `Passed: <command/result>`, `Not applicable: <reason>`, or `Waiv
 
 ### C1. Clean up temporary artifacts
 
-Before committing, remove only task-created scratchpad or temp files. See `references/closing-steps.md` for the keep/remove list. Every removal requires explicit confirmation.
+Before committing, remove only task-created scratchpad or temp files. See `references/closing-steps.md` for the keep/remove list. Owned task scratch is cleaned through `skills/task/scripts/TaskScratch.fsx`: promote durable evidence, `seal` once no active dependency remains, then `clean` deletes only manifest-registered disposable entries without per-file confirmation. Every other removal requires explicit confirmation.
 
 Steps:
 
-- [ ] Scratchpad / temp working files created for this task removed
+- [ ] Owned task scratch sealed and cleaned; retained material reported
+  - Summary:
+- [ ] Other scratchpad / temp working files created for this task removed
   - Summary:
 
 ### C2. Commit and publish

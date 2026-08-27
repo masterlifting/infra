@@ -180,6 +180,7 @@ let validateTestEntryPoint () =
         let requiredTargets =
             [ "dotnet fsi skills/task/scripts/TaskMdTests.fsx"
               "dotnet fsi skills/task/scripts/TaskWorkflowTests.fsx"
+              "dotnet fsi skills/task/scripts/TaskScratchTests.fsx"
               "node lib/task-progress-core.test.mjs"
               "node lib/destructive-patterns.test.mjs"
               "node --check plugins/block-destructive.js"
@@ -364,14 +365,57 @@ let prohibitedAgentNames =
 
 let isProhibitedAgentName (agentName: string) = prohibitedAgentNames.Contains(agentName.ToLowerInvariant())
 
+// Capability is the quality contract a role requires; the concrete model ID is
+// an explicitly approved serving channel. DeepSeek Flash/Pro permit the direct
+// and OpenCode Go channels; Grok 4.5 is currently direct xAI only; OpenAI
+// identities are exact (each has a single allowed ID).
+type Capability =
+    | DeepSeekFlash
+    | DeepSeekPro
+    | Grok45
+    | OpenAiTerra
+    | OpenAiLuna
+    | OpenAiSol
+
+let allCapabilities =
+    Set.ofList [ DeepSeekFlash; DeepSeekPro; Grok45; OpenAiTerra; OpenAiLuna; OpenAiSol ]
+
+let allowedIds =
+    function
+    | DeepSeekFlash -> [ "deepseek/deepseek-v4-flash"; "opencode-go/deepseek-v4-flash" ]
+    | DeepSeekPro -> [ "deepseek/deepseek-v4-pro"; "opencode-go/deepseek-v4-pro" ]
+    | Grok45 -> [ "xai/grok-4.6" ]
+    | OpenAiTerra -> [ "openai/gpt-5.6-terra" ]
+    | OpenAiLuna -> [ "openai/gpt-5.6-luna" ]
+    | OpenAiSol -> [ "openai/gpt-5.6-sol" ]
+
+let capabilityName =
+    function
+    | DeepSeekFlash -> "DeepSeekFlash"
+    | DeepSeekPro -> "DeepSeekPro"
+    | Grok45 -> "Grok45"
+    | OpenAiTerra -> "openai/gpt-5.6-terra"
+    | OpenAiLuna -> "openai/gpt-5.6-luna"
+    | OpenAiSol -> "openai/gpt-5.6-sol"
+
+let capabilityOfModel =
+    function
+    | "deepseek/deepseek-v4-flash"
+    | "opencode-go/deepseek-v4-flash" -> Some DeepSeekFlash
+    | "deepseek/deepseek-v4-pro"
+    | "opencode-go/deepseek-v4-pro" -> Some DeepSeekPro
+    | "xai/grok-4.6" -> Some Grok45
+    | "openai/gpt-5.6-terra" -> Some OpenAiTerra
+    | "openai/gpt-5.6-luna" -> Some OpenAiLuna
+    | "openai/gpt-5.6-sol" -> Some OpenAiSol
+    | _ -> None
+
+// Every recognized concrete ID, used where a verified production ID is
+// required (e.g. the global model field).
 let productionModels =
-    Set.ofList
-        [ "openai/gpt-5.6-terra"
-          "openai/gpt-5.6-luna"
-          "openai/gpt-5.6-sol"
-          "deepseek/deepseek-v4-flash"
-          "deepseek/deepseek-v4-pro"
-          "xai/grok-4.5" ]
+    allCapabilities
+    |> Seq.collect allowedIds
+    |> Set.ofSeq
 
 let productionVariants = Set.ofList [ "low"; "medium"; "high" ]
 
@@ -388,47 +432,50 @@ let languageRoles =
 
 let languageRoleAssignment role =
     match role with
-    | "architect" -> Some("openai/gpt-5.6-sol", "high")
-    | "challenger" -> Some("xai/grok-4.5", "high")
-    | "engineer" -> Some("deepseek/deepseek-v4-pro", "high")
-    | "tester" -> Some("deepseek/deepseek-v4-flash", "high")
-    | "reviewer" -> Some("openai/gpt-5.6-luna", "high")
-    | "guardian" -> Some("xai/grok-4.5", "high")
-    | "validator" -> Some("deepseek/deepseek-v4-flash", "high")
+    | "architect" -> Some(OpenAiSol, "high")
+    | "challenger" -> Some(Grok45, "high")
+    | "engineer" -> Some(DeepSeekPro, "high")
+    | "tester" -> Some(DeepSeekFlash, "high")
+    | "reviewer" -> Some(OpenAiLuna, "high")
+    | "guardian" -> Some(Grok45, "high")
+    | "validator" -> Some(DeepSeekFlash, "high")
     | _ -> None
 
 let sharedAgentAssignments =
-    [ "agents/build.md", "openai/gpt-5.6-terra", "medium"
-      "agents/auditor.md", "openai/gpt-5.6-luna", "medium"
-      "agents/vision.md", "openai/gpt-5.6-terra", "medium"
-      "agents/explorer.md", "opencode-go/deepseek-v4-flash", "medium"
-      "agents/executor.md", "opencode-go/deepseek-v4-flash", "high"
-      "agents/software/database/engineer.md", "deepseek/deepseek-v4-pro", "high"
-      "agents/software/database/reviewer.md", "openai/gpt-5.6-luna", "high"
-      "agents/software/devops/engineer.md", "deepseek/deepseek-v4-pro", "high"
-      "agents/software/devops/reviewer.md", "openai/gpt-5.6-luna", "high"
-      "agents/software/security/reviewer.md", "openai/gpt-5.6-terra", "high"
-      "agents/software/performance/reviewer.md", "openai/gpt-5.6-terra", "high" ]
+    [ "agents/build.md", OpenAiTerra, "medium"
+      "agents/auditor.md", OpenAiLuna, "medium"
+      "agents/vision.md", OpenAiTerra, "medium"
+      "agents/explorer.md", DeepSeekFlash, "medium"
+      "agents/executor.md", DeepSeekFlash, "high"
+      "agents/software/database/engineer.md", DeepSeekPro, "high"
+      "agents/software/database/reviewer.md", OpenAiLuna, "high"
+      "agents/software/devops/engineer.md", DeepSeekPro, "high"
+      "agents/software/devops/reviewer.md", OpenAiLuna, "high"
+      "agents/software/security/reviewer.md", OpenAiTerra, "high"
+      "agents/software/performance/reviewer.md", OpenAiTerra, "high" ]
 
 let grokDiversityRoles = Set.ofList [ "challenger"; "guardian" ]
 let deepseekWorkerRoles = Set.ofList [ "explorer"; "executor"; "engineer"; "tester"; "validator" ]
-let grokDiversityModel = "xai/grok-4.5"
-let deepseekProviderPrefix = "deepseek/"
+let grokDiversityModel = "xai/grok-4.6"
 
 let expectedAgentAssignments =
-    [ for path, model, variant in sharedAgentAssignments do
-          yield path, model, variant
+    [ for path, capability, variant in sharedAgentAssignments do
+          yield path, capability, variant
 
       for team in languageTeams do
           for role in languageRoles do
               match languageRoleAssignment role with
-              | Some(model, variant) -> yield $"agents/software/{team}/{role}.md", model, variant
+              | Some(capability, variant) -> yield $"agents/software/{team}/{role}.md", capability, variant
               | None -> () ]
 
 let roleUsesAssignedChannel (role: string) (model: string) =
-    if grokDiversityRoles.Contains role then model = grokDiversityModel
-    elif deepseekWorkerRoles.Contains role then model.StartsWith(deepseekProviderPrefix, StringComparison.Ordinal)
-    else productionModels.Contains model
+    match capabilityOfModel model with
+    | None -> false
+    | Some capability ->
+        if grokDiversityRoles.Contains role then capability = Grok45
+        elif deepseekWorkerRoles.Contains role then
+            capability = DeepSeekFlash || capability = DeepSeekPro
+        else true
 
 type RoutingAssignment =
     { Design: string list
@@ -568,7 +615,6 @@ let obsoleteLivePatterns =
       "office-documents", Regex(@"office-documents")
       "agents/audit.md", Regex(@"agents/audit\.md")
       "model-profiles", Regex(@"model-profiles")
-      "xai/", Regex(@"xai/")
       "mistral/", Regex(@"mistral/") ]
 
 let obsoleteLiveMatches (content: string) =
@@ -676,7 +722,7 @@ if selfTest then
     requireSelfTest "guardian is grok diversity" (grokDiversityRoles.Contains "guardian")
     requireSelfTest "validator is deepseek worker" (deepseekWorkerRoles.Contains "validator")
     requireSelfTest "reviewer is not grok diversity" (not (grokDiversityRoles.Contains "reviewer"))
-    requireSelfTest "architect assignment" (languageRoleAssignment "architect" = Some("openai/gpt-5.6-sol", "high"))
+    requireSelfTest "architect assignment" (languageRoleAssignment "architect" = Some(OpenAiSol, "high"))
     requireSelfTest "unknown role assignment" (languageRoleAssignment "reviewer-1" = None)
     requireSelfTest "obsolete architect-1" (isProhibitedAgentName "architect-1")
     requireSelfTest "semantic reviewer allowed" (not (isProhibitedAgentName "reviewer"))
@@ -699,6 +745,50 @@ if selfTest then
     requireSelfTest "engineer channel" (roleUsesAssignedChannel "engineer" "deepseek/deepseek-v4-pro")
     requireSelfTest "reviewer channel" (roleUsesAssignedChannel "reviewer" "openai/gpt-5.6-luna")
     requireSelfTest "wrong worker channel rejected" (not (roleUsesAssignedChannel "tester" grokDiversityModel))
+    // Capability-versus-channel matrix (INFRA-008): channels are validated
+    // separately from the capability, and each canonical capability pins its
+    // allowed serving channels.
+    requireSelfTest "flash direct channel" (capabilityOfModel "deepseek/deepseek-v4-flash" = Some DeepSeekFlash)
+    requireSelfTest "flash opencode-go channel" (capabilityOfModel "opencode-go/deepseek-v4-flash" = Some DeepSeekFlash)
+    requireSelfTest "pro direct channel" (capabilityOfModel "deepseek/deepseek-v4-pro" = Some DeepSeekPro)
+    requireSelfTest "pro opencode-go channel" (capabilityOfModel "opencode-go/deepseek-v4-pro" = Some DeepSeekPro)
+    requireSelfTest
+        "all approved deepseek channels are production IDs"
+        ([ "deepseek/deepseek-v4-flash"; "opencode-go/deepseek-v4-flash"
+           "deepseek/deepseek-v4-pro"; "opencode-go/deepseek-v4-pro" ]
+         |> List.forall productionModels.Contains)
+    requireSelfTest
+        "grok is direct xai only"
+        (capabilityOfModel "xai/grok-4.6" = Some Grok45 && capabilityOfModel "opencode-go/grok-4.5" = None)
+    requireSelfTest
+        "openai identities are exact"
+        (capabilityOfModel "openai/gpt-5.6-terra" = Some OpenAiTerra
+         && capabilityOfModel "openai/gpt-5.6-luna" = Some OpenAiLuna
+         && capabilityOfModel "openai/gpt-5.6-sol" = Some OpenAiSol
+         && capabilityOfModel "opencode-go/gpt-5.6-sol" = None)
+    requireSelfTest
+        "tier rejection flash vs pro"
+        (capabilityOfModel "deepseek/deepseek-v4-flash" <> Some DeepSeekPro
+         && languageRoleAssignment "engineer" = Some(DeepSeekPro, "high")
+         && languageRoleAssignment "tester" = Some(DeepSeekFlash, "high"))
+    requireSelfTest "grok in deepseek role rejected" (not (roleUsesAssignedChannel "engineer" "xai/grok-4.6"))
+    requireSelfTest "deepseek in grok role rejected" (not (roleUsesAssignedChannel "challenger" "deepseek/deepseek-v4-pro"))
+    requireSelfTest
+        "variant rejection"
+        (productionVariants = Set.ofList [ "low"; "medium"; "high" ] && not (productionVariants.Contains "premium"))
+    requireSelfTest
+        "live matrix uses canonical capabilities and variants"
+        (expectedAgentAssignments
+         |> List.forall (fun (_, capability, variant) ->
+             allCapabilities.Contains capability && productionVariants.Contains variant))
+    requireSelfTest
+        "engineer capability is DeepSeekPro across language teams"
+        (languageTeams
+         |> List.forall (fun team ->
+             expectedAgentAssignments
+             |> List.exists (fun (path, capability, _) ->
+                 path = $"agents/software/{team}/engineer.md" && capability = DeepSeekPro)))
+    requireSelfTest "small_model channel resolves to DeepSeekFlash" (capabilityOfModel "opencode-go/deepseek-v4-flash" = Some DeepSeekFlash)
     requireSelfTest
         "architect+challenger parallel wave only when both required"
         (requiredRoutingScenarios |> List.forall (fun scenario ->
@@ -929,7 +1019,7 @@ let modelProfilesRoot = Path.Combine(root, "model-profiles")
 if Directory.Exists modelProfilesRoot then
     error "removed-surface" "model-profiles" "Obsolete model-profile artifacts must not exist"
 
-for path, expectedModel, expectedVariant in expectedAgentAssignments do
+for path, expectedCapability, expectedVariant in expectedAgentAssignments do
     let fullPath = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar))
     if not (File.Exists fullPath) then
         error "agent-topology" path "Required semantic agent definition is missing"
@@ -938,9 +1028,9 @@ for path, expectedModel, expectedVariant in expectedAgentAssignments do
         | None -> ()
         | Some(_, values) ->
             match values.TryGetValue "model" with
-            | true, model when model = expectedModel -> ()
-            | true, model -> error "agent-model" path $"Expected model '{expectedModel}' but found '{model}'"
-            | _ -> error "agent-model" path $"Missing model; expected '{expectedModel}'"
+            | true, model when capabilityOfModel model = Some expectedCapability -> ()
+            | true, model -> error "agent-model" path $"Expected model capability '{capabilityName expectedCapability}' but found '{model}'"
+            | _ -> error "agent-model" path $"Missing model; expected '{capabilityName expectedCapability}'"
 
             match values.TryGetValue "variant" with
             | true, variant when variant = expectedVariant -> ()
@@ -960,17 +1050,17 @@ for role in languageRoles do
                 | Some(_, values) ->
                     let model = match values.TryGetValue "model" with | true, value -> value | _ -> ""
                     let variant = match values.TryGetValue "variant" with | true, value -> value | _ -> ""
-                    Some(path, model, variant)
+                    Some(path, capabilityOfModel model, variant)
                 | None -> None)
 
     let distinctAssignments =
         assignments
-        |> List.map (fun (_, model, variant) -> model, variant)
+        |> List.map (fun (_, capability, variant) -> capability, variant)
         |> List.distinct
 
     if distinctAssignments.Length > 1 then
         let paths = assignments |> List.map (fun (path, _, _) -> path) |> String.concat ", "
-        error "team-consistency" paths $"Language teams disagree on '{role}' model or variant"
+        error "team-consistency" paths $"Language teams disagree on '{role}' capability or variant"
 
 let obsoleteTeamRule = Path.Combine(root, "rules", "software", "team.md")
 if File.Exists obsoleteTeamRule then
@@ -1367,7 +1457,10 @@ let taskTemplateMarkers =
       "build and test evidence is recorded"
       "returns `BLOCKED`"
       "Targeted Verification receipts recorded"
-      "- Behavioral specification: (optional) `.tasks/{TASK-ID}/SPEC.md`" ]
+      "- Behavioral specification: (optional) `.tasks/{TASK-ID}/SPEC.md`"
+      "TaskScratch.fsx"
+      "promote durable evidence"
+      "manifest-registered disposable entries" ]
 
 requireMarkers "task-template-drift" "skills/task/references/template.md" taskTemplateMarkers
 
@@ -1417,6 +1510,56 @@ requireMarkers
       "Waived:"
       "hasRecordedWaiver" ]
 
+requireMarkers
+    "scratch-lifecycle"
+    "skills/task/scripts/TaskScratch.fsx"
+    [ "create <TASK-ID>"
+      "register <ROOT> <PATH>"
+      "report <ROOT>"
+      "promote <ROOT> <ENTRY-PATH>"
+      "seal <ROOT>"
+      "clean <ROOT>"
+      "manifest.json"
+      "opencode/tasks"
+      "handle-relative"
+      "NtCreateFile"
+      "ReparsePoint"
+      "fails closed"
+      "byte-verified"
+      "rootId"
+      "fileId"
+      "digest"
+      "safe filesystem"
+      "promotedTo"
+      "manifestVersion"
+      "GetTempPath"
+      "duplicate entry paths"
+      "registered target is missing"
+      "unregistered directory"
+      "cannot register the manifest file itself"
+      "registration is rejected"
+      "promotion is rejected"
+      "invalid run ID"
+      "non-Windows"
+      "no compatibility fallback" ]
+
+requireMarkers
+    "helper-index"
+    "scripts/README.md"
+    [ "skills/task/scripts/TaskScratch.fsx"
+      "skills/task/scripts/TaskScratchTests.fsx" ]
+
+requireMarkers
+    "scratch-closeout"
+    "skills/task/references/closing-steps.md"
+    [ "TaskScratch.fsx"
+      "promote durable evidence"
+      "records that no active dependency remains"
+      "manifest-registered, non-promoted file entries"
+      "without per-file confirmation"
+      "fails closed and deletes nothing"
+      "reports everything retained" ]
+
 let validatorPath = Path.Combine(__SOURCE_DIRECTORY__, Path.GetFileName __SOURCE_FILE__) |> relativePath
 let textExtensions = Set.ofList [ ".md"; ".fsx"; ".js"; ".mjs"; ".json" ]
 
@@ -1451,29 +1594,31 @@ for file in liveInfrastructureFiles do
     for obsolete in obsoleteLiveMatches content do
         error "obsolete-reference" (relativePath file) $"Live infrastructure references obsolete identifier '{obsolete}'"
 
-let assignedProductionModels =
+let assignedCapabilities =
     seq {
-        for path, model, _ in expectedAgentAssignments do
+        for path, capability, _ in expectedAgentAssignments do
             let fullPath = Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar))
-            if File.Exists fullPath then yield model
+            if File.Exists fullPath then yield capability
 
         if File.Exists configPath then
             try
                 use document = JsonDocument.Parse(File.ReadAllText configPath)
                 match tryProperty "model" document.RootElement with
-                | Some model when model.ValueKind = JsonValueKind.String -> yield model.GetString()
+                | Some model when model.ValueKind = JsonValueKind.String ->
+                    yield! capabilityOfModel (model.GetString()) |> Option.toList
                 | _ -> ()
 
                 match tryProperty "small_model" document.RootElement with
-                | Some model when model.ValueKind = JsonValueKind.String -> yield model.GetString()
+                | Some model when model.ValueKind = JsonValueKind.String ->
+                    yield! capabilityOfModel (model.GetString()) |> Option.toList
                 | _ -> ()
             with _ ->
                 ()
     }
     |> Set.ofSeq
 
-for missing in Set.difference productionModels assignedProductionModels do
-    error "production-model" "agents" $"Required production model '{missing}' is not assigned"
+for missing in Set.difference allCapabilities assignedCapabilities do
+    error "production-model" "agents" $"Required model capability '{capabilityName missing}' is not assigned"
 
 let normalizedRoot = root.Replace("\\", "/").TrimEnd('/')
 let knownRouteRoots = [ "agents/"; "commands/"; "lib/"; "plugins/"; "references/"; "rules/"; "scripts/"; "skills/" ]
