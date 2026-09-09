@@ -13,6 +13,28 @@ This document records the evidence needed to reconstruct and verify the backlog-
 
 The proposal hash is independently specified in `universal-task-framework.snapshot/manifest.md`; the ledger hash identifies the final static migration record committed after the preservation package itself was added.
 
+## Static GitHub integrity verification
+
+The seven proposal parts were verified after GitHub writes by comparing each GitHub blob SHA with the Git blob SHA calculated from the corresponding local source slice. All seven matched exactly.
+
+Verified byte sizes:
+
+```text
+part-01  11085
+part-02  12212
+part-03  11875
+part-04  13925
+part-05  12351
+part-06  11717
+part-07  18890
+----------------
+total    92055
+```
+
+The total equals the original proposal byte length in the manifest. The snapshot is therefore lossless at the Git blob/content level; reconstruction must additionally verify the full SHA-256 from the manifest.
+
+The committed ledger, roadmap, and preservation README were also verified against locally computed Git blob SHAs.
+
 ## Full issue replacements
 
 ### `masterlifting/infra#12`
