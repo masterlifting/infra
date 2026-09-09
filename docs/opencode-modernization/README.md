@@ -16,7 +16,15 @@ It exists so the modernization work does **not** depend on a ChatGPT session, lo
   Canonical implementation order and issue ownership boundaries.
 
 - [`backlog-alignment-evidence.md`](./backlog-alignment-evidence.md)  
-  Static evidence snapshot: artifact hashes, issue replacements, addendum comment IDs, and verified invariants.
+  Static evidence snapshot: artifact hashes, issue replacements, addendum comment IDs, verified invariants, and post-write Git blob integrity checks.
+
+## Integrity
+
+The reconstructed accepted proposal must have SHA-256:
+
+`d14ab3779fe51728728a9925145d34e791b0d5e23f870f8fbcc8ee02239c085c`
+
+All seven GitHub snapshot part blobs were verified against Git blob SHA values computed from the local accepted proposal source. See `backlog-alignment-evidence.md` and the snapshot manifest.
 
 ## Current canonicality
 
