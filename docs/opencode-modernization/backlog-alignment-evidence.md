@@ -3,16 +3,17 @@
 **Snapshot date:** 2026-09-09  
 **Repository:** `masterlifting/infra`  
 **Branch for static preservation package:** `dev`  
-**Preservation snapshot commit:** `7ddcc2c8bf69e7de98aa4b340aa9526537f5b4c9`
+**Integrity snapshot commit:** `7ddcc2c8bf69e7de98aa4b340aa9526537f5b4c9`
 
 This document records the evidence needed to reconstruct and verify the backlog-alignment migration performed after acceptance of the Universal Task Framework architecture.
 
-## Artifact hashes after static preservation
+## Architecture integrity
 
-- reconstructed `universal-task-framework.md` SHA-256: `d14ab3779fe51728728a9925145d34e791b0d5e23f870f8fbcc8ee02239c085c`
-- `backlog-migration-ledger.md` SHA-256: `564703fa856ca5b83d67abc3d8fd4dfda35ecd8d3227704e5fdff588e9f5330a`
+Reconstructed `universal-task-framework.md` SHA-256:
 
-The proposal hash is independently specified in `universal-task-framework.snapshot/manifest.md`; the ledger hash identifies the final static migration record committed after the preservation package itself was added.
+`d14ab3779fe51728728a9925145d34e791b0d5e23f870f8fbcc8ee02239c085c`
+
+The proposal hash is independently specified in `universal-task-framework.snapshot/manifest.md`.
 
 ## Static GitHub integrity verification
 
@@ -34,7 +35,7 @@ total    92055
 
 The total equals the original proposal byte length in the manifest. The snapshot is therefore lossless at the Git blob/content level; reconstruction must additionally verify the full SHA-256 from the manifest.
 
-The committed ledger, roadmap, and preservation README were also verified against locally computed Git blob SHAs.
+The committed ledger, roadmap, and preservation README were also created/fetched in GitHub. Later documentation-only commits may strengthen the evidence/cross-references; the immutable architecture check is the proposal SHA-256 above.
 
 ## Full issue replacements
 
