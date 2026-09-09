@@ -57,17 +57,21 @@ Do not start a later implementation issue before the previous mandatory issue ha
 
 ## #9 cutover obligation
 
-When the dedicated shared OpenCode repository is created, #9 must migrate:
+When the dedicated shared OpenCode repository is created, #9 must use this static package as mandatory migration input:
 
-1. the lossless proposal snapshot, reconstructed into one canonical architecture file and SHA-256 verified;
+```text
+masterlifting/infra
+branch: dev
+path: docs/opencode-modernization/
+```
+
+It must migrate/reconstruct:
+
+1. the lossless proposal snapshot into one canonical architecture file and verify SHA-256;
 2. `backlog-migration-ledger.md`;
 3. this roadmap;
 4. `backlog-alignment-evidence.md`;
 5. the aligned canonical issue bodies/addenda.
-
-Source package:
-
-`masterlifting/infra` branch `dev`, `docs/opencode-modernization/`
 
 Proposal integrity SHA-256:
 
