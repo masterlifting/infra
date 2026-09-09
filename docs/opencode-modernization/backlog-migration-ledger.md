@@ -5,21 +5,25 @@
 
 ## 1. Frozen architecture source
 
-Canonical local proposal:
-
-`universal-task-framework-proposal-final.md`
-
-SHA-256:
+Canonical accepted proposal integrity SHA-256:
 
 `d14ab3779fe51728728a9925145d34e791b0d5e23f870f8fbcc8ee02239c085c`
 
-Architectural status in that document:
+Architectural status:
 
 - architecture review closed;
 - ready for issue decomposition;
 - proposal owns Universal Task Framework semantics until explicitly superseded.
 
-The proposal must become a repository-tracked canonical architecture document during/through the #9 repository cutover. Do not rely on a chat attachment as the long-term source of truth.
+Static GitHub preservation source before #9 cutover:
+
+```text
+repository: masterlifting/infra
+branch: dev
+path: docs/opencode-modernization/
+```
+
+The accepted proposal is preserved losslessly under `universal-task-framework.snapshot/` with a SHA-256 manifest. #9 must reconstruct it into one canonical destination architecture document and verify the hash.
 
 Recommended destination path after cutover:
 
@@ -29,38 +33,21 @@ Exact path may follow the destination repository's documentation conventions; se
 
 ## 2. Migration safety rules
 
-1. Do not mutate GitHub until all replacement issue bodies/patches are prepared offline.
-2. Preserve one canonical owner per concern.
-3. Do not copy the full Task proposal into multiple issues.
-4. For every removed old requirement, classify it as:
+1. Preserve one canonical owner per concern.
+2. Do not copy the full Task proposal into multiple issues.
+3. For every removed old requirement, classify it as:
    - superseded by accepted Task architecture;
    - moved to another canonical owner;
    - still required and retained.
-5. After each GitHub write:
-   - re-fetch the issue;
-   - compare title/body to the prepared draft;
-   - verify cross-issue links and non-goals;
+4. After each GitHub write:
+   - re-fetch the issue/file;
+   - verify intended content/state;
    - do not retry an ambiguous write before observing actual GitHub state.
-6. Update the sequencing tracker (#16) last so it describes the already-aligned backlog.
-7. Preserve the mandatory execution order unless the user explicitly changes it:
+5. Update the sequencing tracker (#16) last so it describes the already-aligned backlog.
+6. Preserve the mandatory execution order unless the user explicitly changes it:
    `#9 -> #10 -> #11 -> #12 -> #13 -> #14 -> #15 -> #17`.
 
-## 3. Current issue snapshot
-
-| Repository | Issue | Current title | Migration classification |
-| --- | ---: | --- | --- |
-| `masterlifting/infra` | #9 | OpenCode 1/7: Extract dedicated modular repository and define composition | **Targeted update** |
-| `masterlifting/infra` | #10 | OpenCode 2/7: Capability-oriented agents, knowledge, and contracts | **Targeted update** |
-| `masterlifting/infra` | #11 | OpenCode 3/7: Canonical delegation and agent communication contracts | **Targeted update** |
-| `masterlifting/infra` | #12 | OpenCode 4/7: Universal /task framework with risk-driven lifecycle profiles | **Full rewrite** |
-| `masterlifting/infra` | #13 | OpenCode 5/7: Establish F# MCP integration and thin JS/TS extension boundaries | **Targeted update** |
-| `masterlifting/infra` | #14 | OpenCode 6/7: Deterministic .NET verification via F# MCP tools | **Minimal integration update** |
-| `masterlifting/infra` | #15 | OpenCode 7/7: Composition-aware logical knowledge resolution and controlled loading | **Targeted integration update** |
-| `masterlifting/infra` | #16 | OpenCode modernization roadmap — #9→#15, then #17 readiness audit | **Tracker update last** |
-| `masterlifting/infra` | #17 | OpenCode post-modernization: Frontier-model readiness audit and model-routing eval | **Targeted integration update** |
-| `masterlifting/happy-life` | #1 | Migrate life-ops to universal /task profiles and retire the standalone OPS workflow | **Full rewrite** |
-
-## 4. Canonical ownership matrix
+## 3. Canonical ownership matrix
 
 | Concern | Canonical owner | Task-framework relationship |
 | --- | --- | --- |
@@ -75,9 +62,9 @@ Exact path may follow the destination repository's documentation conventions; se
 | Model-readiness audit/eval | #17 | Produces findings/remediation proposals consumed through #11/#12 |
 | Happy Life OPS migration / ActionGuard / connectors | `happy-life#1` | Downstream `life` Profile/project extension; not shared Task Core |
 
-## 5. Accepted Task architecture that #12 must own
+## 4. Accepted Task architecture that #12 must own
 
-The implementation issue must reference, not duplicate, the accepted proposal and implement:
+The implementation issue references, rather than duplicates, the accepted proposal and implements:
 
 - Task Core and durable lifecycle;
 - `Kind = research | execution`;
@@ -104,9 +91,9 @@ The implementation issue must reference, not duplicate, the accepted proposal an
 - compatibility for legacy TASK records;
 - staged Happy Life migration boundary, without importing ActionGuard/life-specific storage into Core.
 
-## 6. Explicitly superseded #12 concepts
+## 5. Explicitly superseded #12 concepts
 
-The following must be removed from the current issue rather than accidentally preserved:
+The following are intentionally superseded, not accidentally dropped:
 
 - `kind = general | research | implementation`;
 - a required `domain` axis;
@@ -122,11 +109,7 @@ The following must be removed from the current issue rather than accidentally pr
 - ActionGuard in shared Task Core;
 - arbitrary user-defined state/transition DSL.
 
-These are intentionally superseded by the accepted proposal, not accidentally dropped.
-
-## 7. Existing requirements that must survive the rewrite
-
-From the current backlog and earlier Task/OPS semantics, retain or map:
+## 6. Existing requirements preserved/mapped
 
 - clarification policy: BLOCKING / ASSUMPTION / NON-BLOCKING;
 - gate taxonomy: Safety / Decision / Quality / Bookkeeping;
@@ -144,139 +127,36 @@ From the current backlog and earlier Task/OPS semantics, retain or map:
 - audit remediation proposals remain advisory/read-only until coordinator materialization;
 - historical TASK/OPS records are not mass-rewritten.
 
-## 8. Issue-by-issue migration plan
+## 7. Applied GitHub alignment
 
-### #9 — targeted update
+### Full issue-body replacements
 
-Retain current repository/composition/cutover requirements.
+- `masterlifting/infra#12`
+  - title: `OpenCode 4/7: Implement the Universal Task Framework and deterministic Task Runtime`;
+  - body replaced with the reviewed implementation draft and re-fetched/verified.
 
-Add:
+- `masterlifting/happy-life#1`
+  - title: `Migrate Happy Life from life-ops to the Universal Task Framework and retire OPS`;
+  - body replaced with the reviewed downstream migration draft and re-fetched/verified.
 
-- the accepted Universal Task Framework proposal is a canonical architecture artifact that must be copied/committed into the destination shared OpenCode repository during cutover;
-- destination backlog recreation must use the **aligned** issue texts produced by this migration, not the stale pre-proposal #12/Happy Life wording;
-- preferred destination #4 title should describe the Universal Task Framework rather than only "risk-driven task lifecycle".
+### Append-only authoritative alignment addenda
 
-Do not make #9 implement Task Runtime.
+To avoid accidentally dropping mature requirements from large otherwise-correct issue bodies, targeted updates were applied as authoritative comments rather than destructive full-body replacements.
 
-### #10 — targeted update
+Each addendum requires #9 cutover to fold it into the destination canonical issue body.
 
-Retain capability/role/authority ownership.
+| Issue | Comment ID | Purpose |
+| --- | ---: | --- |
+| `infra#9` | `5599070013` | proposal/backlog/static-package migration and destination #4 naming |
+| `infra#10` | `5599074226` | capability/role/platform-authority vs Task-domain authority boundary |
+| `infra#11` | `5599077971` | WorkItem owner -> Assignment/AgentResult integration |
+| `infra#13` | `5599081850` | Task Runtime boundary selection; MCP is not mandatory |
+| `infra#14` | `5599083359` | typed Task Evidence integration |
+| `infra#15` | `5599088756` | Profile capability envelope vs knowledge authorization/loading |
+| `infra#17` | `5599091016` | Task materialization semantics for audit remediation |
+| `infra#16` | `5599097450` | roadmap update, applied last; sequence unchanged |
 
-Clarify integration:
-
-- #10 owns platform role contracts and the semantic-preference vs contract vs native-permission distinction;
-- #12 owns Task-domain `DecisionAuthority`, trusted human-confirmation integration, Guard/contract mutation authority and Profile capability-envelope consumption;
-- Profile capability envelopes must not grant permissions or redefine role contracts;
-- Task profile `required/default/allowed` capabilities operate only inside #9/#10 effective composition.
-
-Avoid copying Task domain types into #10.
-
-### #11 — targeted update
-
-Retain Assignment/AgentResult protocol.
-
-Add integration statements:
-
-- durable WorkItem owner is planning state, not transport;
-- coordinator resolves the logical owner into canonical Assignment at execution time;
-- AgentResult evidence/verification is converted/referenced as typed Task Evidence by #12;
-- WorkItem/child Task completion is not inferred solely from `AgentResult.completed`;
-- remediation proposal provenance must remain available when #12 materializes candidate durable work.
-
-Do not move WorkItem state-machine semantics into #11.
-
-### #12 — full rewrite
-
-Use the prepared `draft-infra-12.md`.
-
-The accepted proposal is canonical architecture; #12 is the bounded implementation issue.
-
-### #13 — targeted update
-
-Retain current runtime-boundary hierarchy.
-
-Add Task Runtime as a concrete consumer:
-
-- start with pure F# library/scripts/CLI where sufficient;
-- introduce local MCP only when repeated interactive calls/lifetime benefits justify it;
-- if OpenCode managed-region protection requires a plugin/hook, keep it thin and delegate deterministic Task domain logic to F#;
-- do not force Task Runtime behind MCP for architectural uniformity.
-
-### #14 — minimal integration update
-
-Retain .NET verification semantics.
-
-Clarify:
-
-- build/test/review results map into #12 typed Evidence/Guard requirements;
-- a transport-successful MCP call is not verification evidence unless its semantic result is valid;
-- superseded verification evidence must no longer satisfy current Task Guards/ACs.
-
-Do not make #14 own Task Evidence domain.
-
-### #15 — targeted integration update
-
-Retain logical knowledge model.
-
-Clarify:
-
-- Profile selects the capability envelope; #15 resolves knowledge inside the effective enabled/authorized capability set;
-- profile capability `required/default/allowed` is **not** the same concept as knowledge `required/allowed/hinted/lazy`;
-- Assignment remains the invocation-level knowledge authorization boundary;
-- Task/Profile composition may contribute caller-known routing input but cannot bypass #15 authorization semantics.
-
-### #17 — targeted integration update
-
-Retain audit/eval behavior.
-
-Clarify:
-
-- audit findings/remediation proposals may target Task/Profile/Guard/authority defects;
-- auditor remains read-only;
-- #12 materialization uses the accepted Task activation/Profile selection/authority rules;
-- a remediation task completion still requires bounded re-observation when the audit finding is externally observable.
-
-### `happy-life#1` — full rewrite
-
-Use the prepared `draft-happy-life-1.md`.
-
-Major changes:
-
-- replace old `general/default` / `life/general` taxonomy with `Kind = research|execution` + project-local `life` Profile;
-- use recursive Work Tree and the shared Guard/Evidence/Decision lifecycle;
-- retain ActionGuard/connectors/project storage downstream;
-- migration becomes replay -> shadow -> low-risk canary -> selective active-record migration -> cutover;
-- historical OPS remains readable; no mass rewrite;
-- one writable lifecycle after cutover.
-
-### #16 — update last
-
-Keep sequence unchanged.
-
-Update #12 description to Universal Task Framework and add:
-
-- accepted Task proposal is canonical for Task semantics;
-- implementation issue #12 references it rather than duplicating it;
-- #9 must carry the proposal and aligned backlog into the destination repository.
-
-Do not copy proposal details into the tracker.
-
-## 9. Recommended GitHub edit order
-
-This is the **edit/migration order**, not implementation order:
-
-```text
-#9 small cutover/proposal migration patch
--> #10 boundary patch
--> #11 integration patch
--> #12 full rewrite
--> #13 integration patch
--> #14 minimal evidence integration patch
--> #15 integration patch
--> #17 integration patch
--> happy-life#1 full rewrite
--> #16 tracker update LAST
-```
+## 8. Implementation order
 
 Implementation order remains:
 
@@ -284,94 +164,66 @@ Implementation order remains:
 #9 -> #10 -> #11 -> #12 -> #13 -> #14 -> #15 -> #17
 ```
 
-## 10. Verification after applying writes
+#16 is the sequencing/ownership tracker and was aligned last.
 
-After all updates:
+Workflow transition:
 
-- search `infra#9-#17` and `happy-life#1` for stale taxonomy:
-  - `general/default`
-  - `research/default`
-  - `software/implementation`
-  - `kind=implementation`
-  - `kind=general`
-  - required `domain`
-  - `life/general`
-  - persisted `ready`
-- verify no issue makes ActionGuard shared core;
-- verify #10/#11/#12 do not compete for role/communication/task-domain ownership;
-- verify #13 owns runtime boundary, not Task semantics;
-- verify #15 owns knowledge authorization/loading, not Profile semantics;
-- verify #16 contains sequencing/ownership only;
-- verify #17 remains read-only;
-- verify Happy Life migration uses one authoritative writable lifecycle after cutover;
-- re-fetch every changed issue and compare with the prepared draft/patch.
+- #9–#11 use the pre-#12 `/task` workflow;
+- #13 onward use the Universal Task Framework after #12 lands.
 
-## 11. GitHub mutation status
+## 9. Static GitHub preservation package
 
-**Applied on 2026-09-09.**
+Preserved on `masterlifting/infra` branch `dev`:
 
-### Full issue-body replacements
+```text
+docs/opencode-modernization/
+  README.md
+  implementation-roadmap.md
+  backlog-alignment-evidence.md
+  backlog-migration-ledger.md
+  universal-task-framework.snapshot/
+    manifest.md
+    part-01.md
+    part-02.md
+    part-03.md
+    part-04.md
+    part-05.md
+    part-06.md
+    part-07.md
+```
 
-- `masterlifting/infra#12`
-  - new title: `OpenCode 4/7: Implement the Universal Task Framework and deterministic Task Runtime`
-  - body replaced with the reviewed implementation draft;
-  - re-fetched after write and verified.
-
-- `masterlifting/happy-life#1`
-  - new title: `Migrate Happy Life from life-ops to the Universal Task Framework and retire OPS`
-  - body replaced with the reviewed downstream migration draft;
-  - re-fetched after write and verified.
-
-### Append-only authoritative alignment addenda
-
-To avoid accidentally dropping mature requirements from large otherwise-correct issue bodies, the targeted updates were applied as authoritative alignment comments rather than destructive full-body replacements.
-
-Each addendum explicitly requires #9 cutover to fold it into the destination canonical issue body, so the comments are temporary migration artifacts rather than a permanent second source of truth.
-
-- `infra#9` — proposal/backlog migration and destination #4 naming;
-- `infra#10` — capability/role/platform-authority vs Task-domain authority boundary;
-- `infra#11` — WorkItem owner -> Assignment/AgentResult integration;
-- `infra#13` — Task Runtime boundary selection; MCP is not mandatory;
-- `infra#14` — typed Task Evidence integration;
-- `infra#15` — Profile capability envelope vs knowledge authorization/loading;
-- `infra#17` — final Task materialization semantics for audit remediation;
-- `infra#16` — applied last; authoritative roadmap addendum with unchanged sequence and updated #12 ownership.
-
-All addenda were re-fetched after creation and verified.
-
-### Deliberately unchanged
-
-- Mandatory implementation sequence remains:
-  `#9 -> #10 -> #11 -> #12 -> #13 -> #14 -> #15 -> #17`.
-- Existing mature implementation requirements in #9/#10/#11/#13/#14/#15/#17 were not rewritten merely to normalize wording.
-- The accepted architecture proposal is now preserved in `infra/dev` as a lossless SHA-256-verifiable seven-part snapshot under `docs/opencode-modernization/universal-task-framework.snapshot/`. #9 still owns reconstructing/migrating it as one canonical architecture document in the destination repository.
-
-## 12. Cutover obligations created by this migration
-
-When #9 creates/cuts over to the dedicated shared OpenCode repository, it must:
-
-1. commit the accepted Universal Task Framework proposal as the canonical architecture document;
-2. recreate/migrate the aligned issue bodies;
-3. fold every temporary `Backlog alignment addendum` from infra issues into the corresponding destination issue body;
-4. avoid carrying stale superseded Task taxonomy as authoritative text;
-5. leave the infra copies as historical pointers rather than independently editable canonical requirements;
-6. verify the destination tracker still preserves the mandatory issue sequence.
-
-This folding step is mandatory: the temporary comments are a migration-safety mechanism, not the desired final documentation topology.
-
-
-## 13. Static GitHub preservation package
-
-To remove dependence on ChatGPT/session-local files, the following records are preserved on `masterlifting/infra` branch `dev` under `docs/opencode-modernization/`:
-
-- `README.md` — preservation-package index and canonicality rules;
-- `implementation-roadmap.md` — mandatory issue order and ownership;
-- `backlog-alignment-evidence.md` — issue/comment evidence and superseded-taxonomy snapshot;
-- `backlog-migration-ledger.md` — this migration/ownership ledger;
-- `universal-task-framework.snapshot/manifest.md` + `part-01.md` ... `part-07.md` — lossless proposal snapshot.
-
-The proposal snapshot reconstructs to SHA-256:
+The reconstructed proposal SHA-256 must equal:
 
 `d14ab3779fe51728728a9925145d34e791b0d5e23f870f8fbcc8ee02239c085c`
 
-#9 must migrate/reconstruct these records into the dedicated shared OpenCode repository, verify the hash, and then treat the `infra` package as historical evidence rather than a parallel editable source.
+An integrity snapshot of the complete preservation package existed at commit:
+
+`7ddcc2c8bf69e7de98aa4b340aa9526537f5b4c9`
+
+Subsequent commits only strengthened cross-references/evidence/roadmap wording; the proposal snapshot bytes remained unchanged.
+
+## 10. Verified preservation evidence
+
+- all seven GitHub proposal part blobs matched Git blob SHAs computed from the local accepted proposal slices;
+- proposal part byte sizes sum exactly to 92,055 bytes, matching the accepted local proposal;
+- the manifest records reconstruction order, per-part hashes, and full SHA-256;
+- roadmap, ledger and preservation README were committed to GitHub and independently fetched/listed after creation;
+- issue #12 and Happy Life #1 were re-fetched after full replacement;
+- every alignment addendum was re-fetched after creation;
+- #16 alignment was performed last.
+
+## 11. #9 cutover obligations
+
+When #9 creates/cuts over to the dedicated shared OpenCode repository, it must:
+
+1. use `infra/dev/docs/opencode-modernization/` as mandatory migration input;
+2. reconstruct the seven-part proposal into one canonical destination architecture file;
+3. verify SHA-256 `d14ab3779fe51728728a9925145d34e791b0d5e23f870f8fbcc8ee02239c085c` before declaring architecture migration complete;
+4. recreate/migrate the aligned issue bodies;
+5. fold every temporary `Backlog alignment addendum` into the corresponding destination issue body;
+6. migrate/retain the roadmap/ledger/evidence as appropriate historical/migration records;
+7. avoid carrying stale superseded Task taxonomy as authoritative text;
+8. leave the infra copies as historical pointers/evidence rather than independently editable canonical requirements;
+9. verify the destination tracker still preserves the mandatory issue sequence.
+
+The temporary comments and infra preservation package are migration-safety mechanisms, not the desired final documentation topology.
