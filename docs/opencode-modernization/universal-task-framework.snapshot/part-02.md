@@ -380,3 +380,4 @@ A `Pending` WorkItem derives `Ready` only when all mechanically checkable prereq
 - the effective contract otherwise permits execution.
 
 A Task-wide open Question makes every `Pending` WorkItem `NotReady` and makes `StartWorkItem` fail. Already `Active` work is not stopped automatically.
+
