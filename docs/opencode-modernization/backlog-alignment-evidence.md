@@ -92,3 +92,23 @@ Do not resurrect:
 5. fetch listed issues/comments;
 6. compare against the invariants above;
 7. after #9 cutover, use the destination shared OpenCode repo as canonical and treat this package as historical evidence.
+
+## Cutover destination and mapping
+
+- Canonical repository: `masterlifting/opencode:main`
+- Operational/historical repository: `masterlifting/infra`
+- Destination commit: `911df41384abad67be84948c043bc6d7ead45a79`
+
+Exact destination mapping (`infra#9–#17 → opencode#1–#9`):
+
+| Historical infra issue | Destination OpenCode issue |
+| --- | --- |
+| `infra#9` | `opencode#1` |
+| `infra#10` | `opencode#2` |
+| `infra#11` | `opencode#3` |
+| `infra#12` | `opencode#4` |
+| `infra#13` | `opencode#5` |
+| `infra#14` | `opencode#6` |
+| `infra#15` | `opencode#7` |
+| `infra#16` | `opencode#8` |
+| `infra#17` | `opencode#9` |

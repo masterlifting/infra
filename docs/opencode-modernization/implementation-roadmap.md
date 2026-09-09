@@ -64,3 +64,12 @@ path: docs/opencode-modernization/
 `d14ab3779fe51728728a9925145d34e791b0d5e23f870f8fbcc8ee02239c085c`
 
 It must migrate the aligned backlog and fold temporary addenda into destination canonical issue bodies. After cutover, destination becomes canonical and this package historical.
+
+## Cutover declaration
+
+`masterlifting/opencode:main` is the canonical destination. `masterlifting/infra`
+is operational/historical only. The destination commit is
+`911df41384abad67be84948c043bc6d7ead45a79`.
+
+The destination mapping is exact: `infra#9–#17 → opencode#1–#9`. Preserve that
+mapping while applying the mandatory implementation order above.

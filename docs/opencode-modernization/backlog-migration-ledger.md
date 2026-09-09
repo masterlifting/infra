@@ -132,3 +132,21 @@ Integrity snapshot commit:
 7. exclude superseded taxonomy;
 8. make the destination repository canonical and `infra` copies historical;
 9. preserve the mandatory issue sequence.
+
+## Destination mapping
+
+`masterlifting/opencode:main` is canonical. `masterlifting/infra` is
+operational/historical. The destination commit is
+`911df41384abad67be84948c043bc6d7ead45a79`.
+
+| Historical infra issue | Destination OpenCode issue |
+| --- | --- |
+| `infra#9` | `opencode#1` |
+| `infra#10` | `opencode#2` |
+| `infra#11` | `opencode#3` |
+| `infra#12` | `opencode#4` |
+| `infra#13` | `opencode#5` |
+| `infra#14` | `opencode#6` |
+| `infra#15` | `opencode#7` |
+| `infra#16` | `opencode#8` |
+| `infra#17` | `opencode#9` |

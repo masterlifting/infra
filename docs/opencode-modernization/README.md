@@ -42,3 +42,16 @@ After #9 cutover, the destination shared OpenCode repository becomes canonical a
 ```text
 #9 -> #10 -> #11 -> #12 -> #13 -> #14 -> #15 -> #17
 ```
+
+## Cutover declaration
+
+`masterlifting/opencode:main` is canonical. `masterlifting/infra` is
+operational/historical for this modernization package.
+
+Destination commit:
+
+`911df41384abad67be84948c043bc6d7ead45a79`
+
+The destination backlog mapping is `infra#9–#17 → opencode#1–#9`; the exact
+one-to-one ledger is preserved in `backlog-migration-ledger.md` and the
+alignment evidence.
