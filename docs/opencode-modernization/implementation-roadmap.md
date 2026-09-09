@@ -40,7 +40,7 @@ Do not start a later implementation issue before the previous mandatory issue ha
 | repository ownership / cutover / composition / install | `infra#9` |
 | capabilities / role contracts / platform authority / native permissions | `infra#10` |
 | Assignment / AgentResult / delegation transport semantics | `infra#11` |
-| Universal Task Framework / Task Runtime / Profiles / Work Tree / Guards | `infra#12` + `universal-task-framework.md` |
+| Universal Task Framework / Task Runtime / Profiles / Work Tree / Guards | `infra#12` + proposal snapshot in this package |
 | native vs JS/TS vs F# MCP vs hook boundary | `infra#13` |
 | .NET verification | `infra#14` |
 | logical knowledge authorization / resolution / loading | `infra#15` |
@@ -59,10 +59,18 @@ Do not start a later implementation issue before the previous mandatory issue ha
 
 When the dedicated shared OpenCode repository is created, #9 must migrate:
 
-1. `universal-task-framework.md`;
+1. the lossless proposal snapshot, reconstructed into one canonical architecture file and SHA-256 verified;
 2. `backlog-migration-ledger.md`;
 3. this roadmap;
-4. the aligned canonical issue bodies/addenda;
-5. the evidence snapshot needed to prove what was migrated.
+4. `backlog-alignment-evidence.md`;
+5. the aligned canonical issue bodies/addenda.
+
+Source package:
+
+`masterlifting/infra` branch `dev`, `docs/opencode-modernization/`
+
+Proposal integrity SHA-256:
+
+`d14ab3779fe51728728a9925145d34e791b0d5e23f870f8fbcc8ee02239c085c`
 
 After cutover, the destination repository becomes canonical and these `infra` copies become historical migration evidence rather than a second editable source of truth.
