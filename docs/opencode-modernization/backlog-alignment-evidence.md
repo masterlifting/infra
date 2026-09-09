@@ -6,12 +6,12 @@
 
 This document records the evidence needed to reconstruct and verify the backlog-alignment migration performed after acceptance of the Universal Task Framework architecture.
 
-## Artifact hashes before GitHub preservation
+## Artifact hashes after static preservation
 
-- `universal-task-framework.md` SHA-256: `d14ab3779fe51728728a9925145d34e791b0d5e23f870f8fbcc8ee02239c085c`
-- `backlog-migration-ledger.md` SHA-256: `802cffaea3ba412dc0f70539c931e693d9d834d575e3c05d2c6748deb4709648`
+- reconstructed `universal-task-framework.md` SHA-256: `d14ab3779fe51728728a9925145d34e791b0d5e23f870f8fbcc8ee02239c085c`
+- `backlog-migration-ledger.md` SHA-256: `564703fa856ca5b83d67abc3d8fd4dfda35ecd8d3227704e5fdff588e9f5330a`
 
-These hashes identify the exact local artifacts used to create the static GitHub records.
+The proposal hash is independently specified in `universal-task-framework.snapshot/manifest.md`; the ledger hash identifies the final static migration record committed after the preservation package itself was added.
 
 ## Full issue replacements
 
@@ -86,9 +86,10 @@ The following are intentionally obsolete and must not be resurrected as canonica
 
 If there is doubt later:
 
-1. read `universal-task-framework.md`;
-2. read `backlog-migration-ledger.md`;
-3. read `implementation-roadmap.md`;
-4. fetch the current GitHub issues and listed addendum comments;
-5. compare against the invariants above;
-6. when #9 cutover is complete, use the destination shared OpenCode repository as canonical and treat this package as historical evidence.
+1. read `README.md`;
+2. verify/reconstruct the proposal from `universal-task-framework.snapshot/manifest.md` and the seven part files;
+3. read `backlog-migration-ledger.md`;
+4. read `implementation-roadmap.md`;
+5. fetch the current GitHub issues and listed addendum comments;
+6. compare against the invariants above;
+7. when #9 cutover is complete, use the destination shared OpenCode repository as canonical and treat this package as historical evidence.
