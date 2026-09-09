@@ -10,7 +10,7 @@ It exists so the modernization work does **not** depend on a ChatGPT session, lo
   Lossless SHA-256-verifiable snapshot of the accepted Universal Task Framework proposal, split into seven sequential parts solely because the GitHub connector could not upload the existing 92 KB local file directly as one blob.
 
 - [`backlog-migration-ledger.md`](./backlog-migration-ledger.md)  
-  Ownership matrix, retained/superseded requirements, issue migration plan, and record of applied backlog changes.
+  Ownership matrix, retained/superseded requirements, applied issue alignment, and #9 cutover obligations.
 
 - [`implementation-roadmap.md`](./implementation-roadmap.md)  
   Canonical implementation order and issue ownership boundaries.
@@ -30,7 +30,7 @@ An integrity snapshot of the complete package existed at commit:
 
 `7ddcc2c8bf69e7de98aa4b340aa9526537f5b4c9`
 
-Later documentation-only commits may add stronger cross-references/evidence while leaving the proposal snapshot unchanged. The proposal SHA-256 above remains the canonical architecture-integrity check.
+Later documentation-only commits strengthened cross-references/evidence while leaving the proposal snapshot bytes unchanged. The proposal SHA-256 above remains the canonical architecture-integrity check.
 
 ## Current canonicality
 
@@ -42,6 +42,7 @@ Before #9 cutover:
 
 During #9 cutover:
 
+- use this directory as mandatory migration input;
 - reconstruct the proposal into one canonical destination file, recommended conceptually as `docs/architecture/universal-task-framework.md`;
 - verify the reconstructed SHA-256 against the snapshot manifest;
 - migrate the ledger/roadmap/evidence package as useful historical evidence;
