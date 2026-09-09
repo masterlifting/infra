@@ -26,6 +26,12 @@ The reconstructed accepted proposal must have SHA-256:
 
 All seven GitHub snapshot part blobs were verified against Git blob SHA values computed from the local accepted proposal source. See `backlog-alignment-evidence.md` and the snapshot manifest.
 
+An integrity snapshot of the complete package existed at commit:
+
+`7ddcc2c8bf69e7de98aa4b340aa9526537f5b4c9`
+
+Later documentation-only commits may add stronger cross-references/evidence while leaving the proposal snapshot unchanged. The proposal SHA-256 above remains the canonical architecture-integrity check.
+
 ## Current canonicality
 
 Before #9 cutover:
