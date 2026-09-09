@@ -2,7 +2,8 @@
 
 **Snapshot date:** 2026-09-09  
 **Repository:** `masterlifting/infra`  
-**Branch for static preservation package:** `dev`
+**Branch for static preservation package:** `dev`  
+**Preservation snapshot commit:** `7ddcc2c8bf69e7de98aa4b340aa9526537f5b4c9`
 
 This document records the evidence needed to reconstruct and verify the backlog-alignment migration performed after acceptance of the Universal Task Framework architecture.
 
@@ -67,7 +68,7 @@ These comments preserve mature issue bodies while adding the new cross-issue bou
 
 | Issue | Comment ID | Purpose |
 | --- | ---: | --- |
-| `infra#9` | `5599070013` | canonical Task proposal/backlog migration; destination #4 naming |
+| `infra#9` | `5599070013` | canonical Task proposal/backlog migration; destination #4 naming; static preservation input |
 | `infra#10` | `5599074226` | capability/role/platform-authority vs Task-domain authority |
 | `infra#11` | `5599077971` | WorkItem owner -> Assignment/AgentResult integration |
 | `infra#13` | `5599081850` | Task Runtime boundary; MCP not mandatory |
